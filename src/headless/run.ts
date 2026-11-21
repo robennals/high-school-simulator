@@ -31,7 +31,8 @@ let last = performance.now();
 runSimulation(world, (week) => {
   const now = performance.now();
   weekTimes.push(now - last);
-  for (const s of world.students) history[s.id].push({ status: s.status, foundation: s.foundation });
+  // Students can arrive mid-semester (a storyteller event), so their history may start late.
+  for (const s of world.students) (history[s.id] ??= []).push({ status: s.status, foundation: s.foundation });
   const m = computeMetrics(world);
   weekly.push(m);
   console.log(
