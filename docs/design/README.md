@@ -76,6 +76,9 @@ Read in this order:
 9. [Build plan](build-plan.md) — milestones, realism checks, strategy bots.
 10. [Tutorial](tutorial.md) — the welcome pages and the coach that walks you
     through your first day.
+11. [The card rules (spec, not built)](card-rules-spec.md) — the next
+    version: one card game everyone plays by printed rules, with mutual Bond,
+    Energy and Nerve, and your choices as cards.
 
 Also:
 

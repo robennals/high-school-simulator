@@ -437,3 +437,36 @@ Each item lists the choice made and the alternative rejected, for review.
 84. **The opening hand is a plain random six** (Rob: "sometimes maybe you
     just don't have anything to say and it's awkward"). No guaranteed
     playable cards; a free **Stay quiet** lets you pass a turn.
+85. **The card rules spec** (`card-rules-spec.md`) replaces the earlier
+    proposal, with Rob's answers: Bond −5…15 (try it); fog of war over other
+    people's Bonds and over Respect (shown as of when you last saw them);
+    each moment whoever wants to speak most does (Stay quiet / Say something
+    / Jump in) instead of fixed turns; any story can be shared and every
+    listener gets a copy; Ask out only works if they like you enough and a
+    public no costs Respect; other students' personalities are random and
+    hidden, and their picks have randomness. Recommended and written in, for
+    review: no hand — you can use any card you own, each copy once a day, so
+    gaining a card never makes your other cards harder to reach.
+86. **Respect for you is visible; one Energy meter; breaking up** (Rob:
+    "people's respect for you should be visible… what you can't see is
+    their respect for each other"; "do we need both energy and nerve?";
+    "breaking up should be a thing"). Respect for you is always shown; other
+    people's Respect for each other is under the fog of war. Energy and
+    Nerve merge into one 0–12 meter: bold cards cost more, success refunds
+    some, failure costs extra. Going out gives +1⚡ a morning and backup in
+    put-downs but needs weekly upkeep; Break up is a card (played by you, or
+    on you when the Bond drops below 8) that costs Bond with them and their
+    friends; asking out someone else while going out is two-timing.
+    Rejected: keeping Nerve as a second meter (realistic but doubles what
+    you track, and the two mostly move together).
+87. **No two-timing; pushing back against meanness; simulator first** (Rob:
+    "don't allow two-timing at all"; "do we still have ways to use gossip to
+    gang up on someone who has been using mean dominance to gain status?";
+    "do we think the card game rules approach is going to adequately
+    simulate real social outcomes?"). Ask out can't be played while going
+    out. New cards Call out (needs a true story of a mean act) and Don't
+    laugh, and a Standing together rule: three or more people pushing back
+    in a week drop the person a Standing step — research on dominance finds
+    coalitions and reputation, not lone defenders, are what check it. The
+    card rules get a headless simulator and must pass the realism and
+    strategy checks before the game screens change.
