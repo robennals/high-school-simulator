@@ -470,3 +470,14 @@ Each item lists the choice made and the alternative rejected, for review.
     coalitions and reputation, not lone defenders, are what check it. The
     card rules get a headless simulator and must pass the realism and
     strategy checks before the game screens change.
+88. **Gossip and rumors** (Rob: "you only get a gossip card if you were at
+    the place where it happened"; "spreading gossip about someone can harm
+    you if you spread it to their friend"; "try your rules for false
+    gossip"; "false gossip should behave differently to true gossip").
+    People believe whoever they're closer to: a listener closer to the
+    story's subject than to the teller sides with their friend (teller −1
+    Bond). Rumors are made-up stories about an Enemy: the subject and their
+    Friends know they're false and turn on whoever tells them; finding one
+    out creates a true story that the teller lied; true stories alone can be
+    used to Call out; hearing a rumor was a lie restores the subject's
+    Respect. One story a day per person; rumors at most once a week.

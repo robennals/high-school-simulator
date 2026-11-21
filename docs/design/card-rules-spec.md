@@ -193,7 +193,7 @@ as listeners for cards marked *public*.
 | **Offer help** | 1⚡ | → | If they accept (they have a reason: struggling, a test soon, it's their weak skill): Bond +1, their Respect +1, they owe you a Favor 🪙. |
 | **Crack a joke** | 2⚡ | table | Roll: lands on N in 6, N = your Humor (0–5, +1 if the table likes you). Lands: each listener Bond +1, and listeners who value funny Respect +1; +1⚡ back. Flops: each listener's Respect −1; −1⚡. |
 | **Brag (skill)** | 2⚡ | table | Listeners who value that skill: Respect +1. Everyone else: Bond −1. |
-| **Tell (a story)** | 1⚡ | table | Each listener Bond +1 with you (juicy news), gets their own copy of the story card, and applies its effect (§8 rule 7). You keep yours. You get a Gossip mark: your stories are believed less. *Public.* |
+| **Tell (a story)** | 1⚡ | table | Each listener who hadn't heard it gets their own copy and takes it as §8 rule 7 says: believes it (Bond +1 with you — juicy news — and the story's effect), sides with their friend, or knows it's a lie. You keep yours. One story a day (telling and rumors share the budget). *Public.* |
 
 ### Responses (only right after a certain card)
 
@@ -381,13 +381,40 @@ Rules everyone plays by, printed in How to Play.
    Standing plus Friends at the table, counting everyone who plays Don't
    laugh or Stand up for them on the target's side — unless the reply card
    decides it (§6, replies).
-7. **Gossip travels.** A Story card says who did what. Anyone holding one can
-   play it (Tell a story), and every listener gets their own copy — so a
-   story spreads as far as people keep telling it. When someone hears a story,
-   they apply its printed effect once (e.g. *put someone down*: hearer's
-   Respect for the bully −1). A story heard from someone with a Gossip mark
-   has half the effect (round down). Stories go stale after two weeks: they
-   can't be told any more.
+7. **Gossip travels.** You only get a Story card by being there when
+   something happens (everyone present, and onlookers, get one), or by being
+   told. Anyone holding one can tell it, and every listener gets their own
+   copy — so a story spreads as far as people keep telling it. Stories go
+   stale after two weeks. Each listener who hadn't heard it takes it one of
+   three ways:
+   - **They know it's a lie** — it's a made-up story about them or about
+     their Friend (Bond 8+): they turn against the teller (Bond −2) and get a
+     true story: *the teller spread a lie about my friend*.
+   - **They side with their friend** — they're closer to the person it's
+     about than to the teller: they don't believe it, and the teller loses
+     1 Bond with them for badmouthing their friend.
+   - **They believe it:** Bond +1 with the teller (juicy news), and for a
+     story of something mean, their Respect for the person it's about −1 —
+     unless the teller has told three or more stories this week (then no
+     one takes them seriously).
+
+   **People believe whoever they're closer to.**
+
+7b. **Rumors (false gossip).** *Spread a rumor* (2⚡, a mean card) makes up a
+   story about an Enemy (Bond −3 or lower) who isn't there, at most once a
+   week, and tells it. It spreads like any story, but it differs from a true
+   one:
+   - the person it's about, and their Friends, know it's false — so it
+     backfires on whoever tells it to them, even someone who believed it;
+   - finding it out creates a true story that the teller lied, which can
+     spread and be used to Call them out;
+   - it can't be used to Call anyone out (only true stories of mean acts can);
+   - hearing that a rumor was a lie gives the person it was about their
+     Respect back (+1 from each person who hears it).
+
+   So a rumor spreads fast among people who don't know its subject, and blows
+   up when it reaches their friends; someone with no friends is the most
+   exposed.
 8. **Secrets.** Holding someone's Secret card, you can keep it (it slowly
    adds Bond +1 a week while you're Friends) or tell it (a Story card: big
    attention, Bond −6 with them when they hear).
