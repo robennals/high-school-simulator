@@ -524,3 +524,7 @@ Each item lists the choice made and the alternative rejected, for review.
     lead plus a move, the subject lasts a whole exchange, responses don't ask
     questions, and whoever is spoken to answers. Rejected: more or better
     phrases alone, which can't fix a question nobody has a turn to answer.
+97. **Threads in the spec** (Rob: "do 2 and 3"). The card rules spec now
+    describes threads and records two exceptions they make: in a thread,
+    responses may ask questions (the owner always answers next), and Respond
+    doesn't show which of its four lines goes deeper.
