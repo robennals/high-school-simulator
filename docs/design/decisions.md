@@ -506,3 +506,16 @@ Each item lists the choice made and the alternative rejected, for review.
     and talking over only annoys Acquaintances. Rejected: daily Open up
     (8–10 friends each) and the old talk-over rule (each student disliked
     about half the people they'd met).
+93. **Bullying pays at once and costs later** (Rob: "bullying should give
+    immediate respect (except from friends of the attacked) but cost later";
+    "friends of the victim won't always stand up for the victim, but their
+    like/respect numbers won't go up"). Watchers give 2 Respect at once;
+    word takes 7 days to get around. Rejected: gossip from the first day (the
+    win was gone by bedtime) and 1 Respect (too small to notice). The other
+    students mostly see through the lure, or 97% of students got bullied.
+94. **17 cards, many phrases** (Rob: "simplify - but still have multiple
+    phrases that can be shown for each one - chosen contextually"). Respond
+    warmly replaces nine responses. Rejected: a card per way of responding.
+95. **Conversations take turns:** whoever was spoken to answers first, and
+    nobody goes twice in a row while someone else wants to. Rejected: the
+    most-liked speaker winning every tie, which made monologues.

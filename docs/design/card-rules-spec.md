@@ -72,7 +72,7 @@ Every pair of people has one **Bond**, the same in both directions.
 | 1 … 3 | **Acquaintances** | They'll make room for you at a table. |
 | 4 … 7 | **Friendly** | They'll walk to class with you; Tease is affectionate. |
 | 8 … 11 | **Friends** | They'll say yes to an invite; you can call them in the evening. |
-| 12 … 15 | **Close friends** | You can Call in favors freely. |
+| 12 … 15 | **Close friends** | The closest you get: needs regular deep moments. |
 
 **The depth rule.** Casual cards can't raise a Bond past 7 (Friendly). To
 become Friends you need **deep** cards, and you must **both have opened up to
@@ -115,7 +115,7 @@ afford.
 
 | Gain ⚡ | Lose ⚡ |
 | --- | --- |
-| A bold card works (a joke lands, an invite is accepted, a push back wins the room): +1 back | A bold card fails (a joke flops, an invite refused, opening up too soon): −1 extra |
+| A joke lands: +1 back | A joke flops, or you open up too soon: −1 extra |
 | — | Being put down: −2 (Sensitive −3, Thick-skinned 0) |
 | A conversation that included a Friend or Close friend: +1 at the end | Being left out of a table: −1 |
 | Going out with someone: +1 each morning (§6, Going out) | Sports practice: −2 |
@@ -129,11 +129,8 @@ day builds on itself. That's the confidence spiral, as one rule.
 
 ### Favors 🪙
 
-When you **Offer help** and it's accepted, that person owes you a Favor. You
-spend it with **Call in a favor**: they back you up (they play a free Stand up
-to them card if you're put down), take you along (they invite you to their table or
-plans), or help you study (+1 grade step). Favors fade after two weeks.
-Helping people builds goodwill you can draw on later.
+When you **Offer help** and it's accepted, that person owes you a Favor,
+which fades after two weeks. How favors are spent isn't built yet (§13).
 
 ## 5. A conversation, turn by turn
 
@@ -147,11 +144,15 @@ you choose whether to say something, and how hard to push to be heard.
   - **Stay quiet** (free, +1 ⚡ — you catch your breath), or
   - **Say something** — pick a card to play, or
   - **Jump in** — pick a card and push to go first (+1 ⚡).
-- **Who speaks:** Stand up to them, right after a put-down, goes first.
-  Otherwise someone who Jumps in beats someone who Says something. Between
-  equals, the person with the most Bond with the table goes first (people
-  listen to their friends); then higher Standing; then a coin flip. Only the
-  speaker's card is played; everyone else keeps theirs.
+- **Who speaks,** in order:
+  1. Standing up to a put-down.
+  2. Whoever was just spoken to, then anyone responding to what was said.
+  3. Not the person who just spoke: nobody goes twice in a row while someone
+     else wants to speak.
+  4. Jumping in beats saying something. Between equals, the person with the
+     most Bond with the table, then higher Standing, then a coin flip.
+
+  Only the speaker's card is played; everyone else keeps theirs.
 - **Talking over someone:** if you Jump in over an Acquaintance (Bond 1–3)
   who also wanted to speak, your Bond with them −1. It's annoying, not a
   reason for dislike: it never takes a Bond below 0.
@@ -164,70 +165,60 @@ you choose whether to say something, and how hard to push to be heard.
   not enough ⚡).
 - **Aim:** a card is played *to one person* (→) or *to the table*. Effects are
   printed for each: the target, the table, onlookers.
-- **Responses** can only be played right after the kind of card they answer
-  (e.g. Laugh along — right after a joke). Because only one person speaks per
-  moment, there's competition to respond: if three people want to laugh
-  along, one gets the Bond.
+- **Respond warmly** can only be played right after something it can answer
+  (a joke that landed, a question to you). Because only one person speaks per
+  moment, there's competition to respond: if three people want to respond
+  to a joke, one gets the Bond.
 - **Head out** any time.
 - **Length:** lunch is 10 moments; before school, walking and whispering 4;
   after school 6–8.
 
 ## 6. The cards
 
-**Card anatomy.** Name · type (Starter, Response, Deep, Move, Attack) · cost
-(⚡) · aim (→ one person, or table) · printed effect · the line you say
-(chosen to fit what was just said, from the reply graph).
+**17 cards, many phrases.** A card says what you're doing; the words are
+picked from the moment.
+
+**Card anatomy.** Name · cost (⚡) · aim (→ one person, or table) · printed
+effect · the line you say.
+
+**Which line you say** depends on what was just said, by whom, about what,
+how close you two are, shirts, and whether it landed. A line that needs a
+particular answer carries its replies ("What classes do you have?" gets
+classes back). Lines don't repeat in a conversation until their pool runs
+out, and choosing words never rolls dice.
 
 **Reading the effects.** "Bond +1 with target" means your mutual Bond with
 them. "Each listener" means everyone at the table except you. Onlookers count
 as listeners for cards marked *public*.
 
-### Starters (bring something up)
+### Talking
 
 | Card | Cost | Aim | Effect |
 | --- | --- | --- | --- |
-| **Ask about them** | 1⚡ | → | Bond +1 with target. If it's about something they love (their shirt, a hobby they mentioned): Bond +2. |
-| **Share something small** | 1⚡ | → | If Bond ≥ 1: Bond +1. If strangers: no effect (too soon). |
-| **Love: (topic)** / **Diss: (topic)** | 1⚡ | table | Each listener who agrees: Bond +1. Each who disagrees: Bond −1. *(One card, two directions — the audience splits.)* |
-| **Talk (hobby)** | 1⚡ | table | Each listener into that hobby: Bond +1, Respect +1. Others: no effect. |
+| **Get to know them** | 1⚡ (0 if their shirt draws you) | → | Bond +1. If it's about something they love (their shirt, a hobby they mentioned): Bond +2. Ask, share, or bring up their shirt. |
+| **Say what you think: (topic)** | 1⚡ | table | Each listener who agrees: Bond +1. Each who disagrees: Bond −1. |
+| **Talk about a hobby** | 1⚡ | table | Each listener into that hobby: Bond +1, Respect +1. Others: no effect. |
 | **Compliment** | 1⚡ | → | Bond +1. If their Standing is 2+ above yours: each listener's Respect for you −1 (sucking up). |
-| **Offer help** | 1⚡ | → | If they accept (they have a reason: struggling, a test soon, it's their weak skill): Bond +1, their Respect +1, they owe you a Favor 🪙. |
-| **Crack a joke** | 2⚡ | table | Roll: lands on N in 6, N = your Humor (0–5, +1 if the table likes you). Lands: each listener Bond +1, and listeners who value funny Respect +1; +1⚡ back. Flops: each listener's Respect −1; −1⚡. |
+| **Offer help** | 1⚡ | → | Only someone two or more levels weaker at it: Bond +1, their Respect +1, they owe you a Favor 🪙. |
+| **Crack a joke** | 2⚡ | table | Lands on N in 6, N = your Humor (+1 if the table likes you). Lands: each listener Bond +1, and listeners who value funny Respect +1; +1⚡ back. Flops: each listener's Respect −1; −1⚡. |
 | **Brag (skill)** | 2⚡ | table | Listeners who value that skill: Respect +1. Everyone else: Bond −1. |
-| **Tell (a story)** | 1⚡ | table | Each listener who hadn't heard it gets their own copy and takes it as §8 rule 7 says: believes it (Bond +1 with you — juicy news — and the story's effect), sides with their friend, or knows it's a lie. You keep yours. One story a day (telling and rumors share the budget). *Public.* |
+| **Respond warmly** | 0 | → | Right after a hobby, opinion, brag, help, story, opening up, a joke that landed, or a question, compliment or friendly tease to you: Bond +1 with them. Answering someone opening up is **deep**, and they can answer back, deeply. Going along with an opinion counts as saying it: say the opposite later and whoever heard both, Bond −2. |
 
-### Responses (only right after a certain card)
-
-| Card | Cost | Playable after | Effect |
-| --- | --- | --- | --- |
-| **Really listen** | 0 | someone told you something (Share, Talk, an opinion, gossip, a brag) | Bond +1 with them. After a personal share: counts as **deep**. |
-| **Laugh along** | 0 | a joke, or a friendly tease of you | Bond +1 with the joker. |
-| **Answer honestly** | 1⚡ | a question to you | Bond +1 with the asker; they learn one thing you love (gives them an opener). |
-| **Same here** | 1⚡ | someone shared something | Bond +1; counts as **deep** if Bond ≥ 4. |
-| **Agree** | 0 | an opinion you share | Bond +1 with them; as an opinion, also splits the table. |
-| **Push back** | 2⚡ | an opinion you don't share | Bond −1 with them; each listener who agrees with you Bond +1 and Respect +1; +1⚡ back if more listeners side with you. |
-| **Go along** | 0 | an opinion you don't share | Bond +1 with them. Marked **two-faced** with everyone present: if any of them hears you say the opposite later, Bond −2 with them. |
-| **Be impressed** | 0 | someone bragged or showed skill | Bond +1 with them. Cheap and kind — but counts toward *trying too hard* (§8 rule 13). |
-| **Tease back** | 1⚡ | someone teased you or bragged | If Bond ≥ 4: Bond +1 (banter). Otherwise: Bond −1; listeners' Respect for you +1. |
-| **Thank them** | 0 | a compliment or help to you | Bond +1. |
-
-### Deep cards (the only way past Friendly)
+### Getting closer
 
 | Card | Cost | Aim | Effect |
 | --- | --- | --- | --- |
-| **Open up** | 3⚡ | → | Once a week. If Bond ≥ 4: Bond +3 (past 7 only once you've both opened up). If not: Bond −1 (too much, too soon), −1⚡. Private: only works one-on-one or with Friends at the table; otherwise listeners who aren't Friends Bond −1 (awkward). |
-| **Keep a secret** | 0 | (when someone Opens up to you) | Bond +1, and you hold their **Secret card** (§8 rule 8). |
+| **Open up** | 3⚡ | → | Once a week. If Bond ≥ 4: Bond +3 (past 7 only once you've both opened up). If not: Bond −1 (too much, too soon), −1⚡. Outside private moments, listeners who aren't your Friends Bond −1 (awkward). |
+| **Invite to hang out** | 1⚡ | → | Always leaves them an out. Yes if Bond ≥ 4: after school together, privately. A no costs nothing more. |
+| **Ask out** | 3⚡ | → | A "yes" only if your Bond is 7+ and they aren't going out with anyone. You can't play it while you're going out with someone. Yes: you're going out (see Going out). No: Bond −1 (awkward), −2⚡, everyone watching Respect −1 for you, and it's an embarrassing story. |
+| **Break up** | 2⚡ | → (your partner) | You stop going out. Bond −4 with them; their Close friends Bond −1 with you; both of you −2⚡. |
 
-### Moves (change the situation)
+### Gossip
 
 | Card | Cost | Aim | Effect |
 | --- | --- | --- | --- |
-| **Invite to hang out** | 2⚡ | → | Accepted if Bond ≥ 8. Accepted: after school together (a private conversation that can include deep cards), +1⚡ back. Refused in public: −1⚡, and listeners' Respect for you −1. |
-| **Invite, leaving an out** | 1⚡ | → | Same, but accepted at Bond ≥ 4; a refusal costs nothing; no ⚡ back. |
-| **Call in a favor** | 0 + 🪙 | → | Spend a Favor they owe you (see §4). |
-| **Introduce** | 1⚡ | → two people | If you're Friendly with both: they get Bond +1 with each other, and each gets Bond +1 with you. (Being a connector.) |
-| **Ask out** | 3⚡ | → | A "yes" only if their Bond with you is 7+ (the top of Friendly) and they aren't going out with anyone. You can't play it while you're going out with someone. Yes: you're going out (see Going out). No: Bond −1 with them (awkward), −2⚡, and everyone watching Respect −1 for you. Asked one-on-one, a no costs only the ⚡ and the Bond. |
-| **Break up** | 2⚡ | → (your partner) | You stop going out. Bond −4 with them; their Friends and Close friends Bond −1 with you (they take sides); both of you −2⚡. |
+| **Tell a story** | 1⚡ | table | Each listener who hadn't heard it gets their own copy and takes it as §8 rule 7 says. You keep yours. One a day, shared with rumors. *Public.* |
+| **Spread a rumor** | 2⚡ | table | A made-up story about an Enemy who isn't there (§8 rule 7b). Usually backfires: 85% caught. |
 
 ### Going out
 
@@ -247,34 +238,42 @@ as listeners for cards marked *public*.
 - **Everyone plays by this:** the other students get together and break up by
   the same cards and rules.
 
-### Attacks
+### Teasing and bullying
 
 | Card | Cost | Aim | Effect |
 | --- | --- | --- | --- |
-| **Tease** | 1⚡ | → | If Bond ≥ 4: Bond +1 (affectionate). If not: Bond −2 with target, target −1⚡, and target's Friends at the table Bond −1 with you. |
-| **Put someone down** | 2⚡ | → | It always lands: Bond −4 with them and they lose 2⚡. Your Friends who are there, and aren't their Friends, Bond +1 with you. Everyone there can now stand up to you, or tell the story. |
-| **Leave them out** | 1⚡ | → (someone trying to join your table) | They can't join; Bond −2 with them; −1⚡ for them. Listeners who like them Bond −1 with you. |
+| **Tease** | 1⚡ | → | If Bond ≥ 4: Bond +1 (affectionate). If not: Bond −2, target −1⚡, and their Friends at the table Bond −1 with you. |
+| **Put someone down** | 2⚡ | → | Always lands, and works at once. See below. |
+| **Stand up to them** | 2⚡ | → | Anyone who saw it, was its victim, or knows the story, face to face. See below. |
 
-### Bullying
+**Bullying seems to work, and then it doesn't.**
 
-Bullying is two cards and gossip. It should tempt you, and cost you later.
+1. **At once.** The victim: Bond −4, −2⚡. Everyone watching respects the
+   bully 2 more, **except the victim's Friends, who give no boost.** The
+   bully's Friends also Bond +1, unless they're the victim's Friends too.
+2. **For a week,** it looks like it worked: word takes 7 days to get around.
+   Anyone can still stand up to the bully.
+3. **Then word gets around.** Anyone who saw it, and the victim, can tell the
+   story. The teller gains Bond +1 with each new listener. Listeners like and
+   respect the bully 1 less, unless they back the bully (the bully's Friend,
+   and not the victim's).
 
-1. **Put someone down** (above). It always lands.
-2. **Stand up to them** (2⚡; Warm people hold two). Anyone who saw it, was
-   its victim, or has heard the story can play this on the bully, face to face.
+**Standing up to them.**
+- **The odds:** 3 in 6, +1 for each person there on your side, −1 for each on
+  theirs (1 to 5 in 6).
+  - The victim is on your side.
+  - The bully's Friends are on theirs.
+  - The victim's Friends are never on the bully's side. They're on yours if
+    you're the victim or they like you more. Being the victim's Friend
+    doesn't mean they'll speak up.
+  - Anyone else sides with whoever they like more.
+- **It works:** everyone there: Bond −2 and Respect −2 for the bully, and
+  Respect +1 for you. The bully −2⚡.
+- **It fails:** everyone there: Respect −1 for you.
+- **Either way:** Bond −2 between you and the bully, and, right after a
+  put-down, the victim's Bond +3 with you.
 
-   - **The odds:** 3 in 6, +1 for each person there who likes you more than
-     them, −1 for each who likes them more than you (1 to 5 in 6).
-   - **It works:** everyone there: Bond −2 and Respect −2 for the bully, and
-     Respect +1 for you. The bully −2⚡.
-   - **It fails:** everyone there: Respect −1 for you.
-   - **Either way:** Bond −2 between you and the bully, and, right after a
-     put-down, the victim's Bond +3 with you.
-3. **Tell the story** (the normal gossip card; the victim can tell it too).
-   Each new listener: Bond +1 with the teller. Listeners who aren't the
-   bully's Friends like and respect the bully 1 less.
-
-The starting numbers are all in one table, `BULLYING` in `src/cards/rules.ts`.
+The numbers are all in one table, `BULLYING` in `src/cards/rules.ts`.
 
 ## 7. Who you are, as cards
 
@@ -300,12 +299,12 @@ is a **trait card** always in play.
 | Trait | Card | Effect |
 | --- | --- | --- |
 | Outgoing | *Life of the party* | Cards to the table cost 1⚡ less (min 0). |
-| Reserved | *Good listener* | Really listen and Same here give +1 extra Bond. Cards to a table of 4+ cost 1⚡ more. |
+| Reserved | *Good listener* | Respond warmly gives +1 extra Bond. Cards to a table of 4+ cost 1⚡ more. |
 | Warm | *Easy to like* | Your Compliment never counts as sucking up; Tease never costs Bond with Friendly people. |
-| Edgy | *Sharp* | Tease, Push back and Brag cost 1⚡ less. People with Standing below yours are wary (Bond starts −1). |
+| Edgy | *Sharp* | Tease and Brag cost 1⚡ less. People with Standing below yours are wary (Bond starts −1). |
 | Organized | *On top of it* | Homework gives +1 extra grade step; one used-up card comes back each lunch. |
 | Spontaneous | *Up for anything* | +1⚡ when you accept or make an invite. |
-| Curious | *Interested* | +1 Ask about them card; your Asks about hobbies give +1 extra Bond. |
+| Curious | *Interested* | +1 Get to know them card; asking about what they love gives +1 extra Bond. |
 | Traditional | *Loyal* | Your Close friend Bonds never fade (§8 rule 3). |
 | Sensitive | *Reads the room* | No fog of war at your table: you see the Bonds and Respect between everyone you're sitting with. Being put down costs you 1⚡ more. |
 | Thick-skinned | *Unshakable* | Put-downs and failed bold cards cost you no ⚡. |
@@ -330,12 +329,12 @@ worn by more than 30% of the school gives no bonus (it says nothing).
 | Shirt | Gives other players | Effect on you |
 | --- | --- | --- |
 | **Plain tee** | nothing | nobody can tease your shirt |
-| **Funny graphic tee** | People who value funny get a free **Ask about your shirt** (Bond +2 when played on you). Edgy people get a free **Tease your shirt**. | more people approach you; edgy people may tease it |
-| **Fan tee** (a topic) | Fans of it get a free **Ask about your shirt** (Bond +2). People who hate it get a free **Mock your shirt** (as Tease, never affectionate). | fans approach you; haters may mock it |
+| **Funny graphic tee** | People who value funny play **Get to know them** on you free, at Bond +2. Edgy people are tempted to Tease it. | more people approach you; edgy people may tease it |
+| **Fan tee** (a topic) | Fans of it play **Get to know them** on you free, at Bond +2. People who hate it are tempted to Tease it. | fans approach you; haters may mock it |
 | **Hoodie** | fewer people get any card to open with you | Tease and Put down cost 1⚡ more to play on you |
 
-And every shirt with something on it gives *you* an opener on others who wear
-one: **Ask about their shirt** (free, Bond +2 if they love it).
+And it works both ways: **Get to know them** is free, at Bond +2, on anyone
+whose shirt draws you.
 
 ### 7.5 Activity and evenings → day cards
 
@@ -391,7 +390,8 @@ Rules everyone plays by, printed in How to Play.
      story does nothing.
    - **They believe it:** Bond +1 with the teller (juicy news). A true story
      of meanness: they like and respect whoever was mean 1 less, unless
-     they're that person's Friend. A rumor, or something embarrassing (being
+     they back them (that person's Friend, and not the victim's). A
+     put-down can't be told until a week after it happened. A rumor, or something embarrassing (being
      turned down): Respect −1 for the person it's about. After three stories
      in a week your stories stop hurting whoever they're about.
 
@@ -410,9 +410,7 @@ Rules everyone plays by, printed in How to Play.
      everyone who heard it: the subject gets 1 Respect back, and whoever
      made it up loses 1 Bond and 1 Respect with each of them.
 
-8. **Secrets.** Holding someone's Secret card, you can keep it (it slowly
-   adds Bond +1 a week while you're Friends) or tell it (a Story card: big
-   attention, Bond −6 with them when they hear).
+8. **Secrets.** Not built (§13).
 9. **Opinions drift.** Each Sunday, each person's opinion on each topic moves
    one step toward what most of their Friends and Close friends say.
 10. **Adults.** A put-down seen by a teacher: 1 in 3 it's reported, and
@@ -422,7 +420,7 @@ Rules everyone plays by, printed in How to Play.
     form a group; groups are shown on the map and in the Notebook.
 12. **Standing** is recomputed every Sunday (§3).
 13. **Trying too hard.** If in one week you play three or more warm cards
-    (Ask, Compliment, Be impressed, Laugh along) at someone of higher Standing
+    (Get to know them, Compliment, Respond warmly) at someone of higher Standing
     who plays none back at you, their Respect for you −1. Investing in people
     works when it's returned.
 14. **Seats.** If there's room where one of your Friends is, you sit there.
@@ -447,14 +445,15 @@ same rules. A simple policy picks their cards instead of a person, and it's
   - **Respect and Standing** (more if they care about status);
   - **Avoiding risk** (more if Sensitive);
   - **Their traits** (Outgoing people favor table cards and Jumping in, Edgy
-    people favor teasing and pushing back, Warm people favor listening,
+    people favor teasing and bragging, Warm people favor listening,
     Reserved people stay quiet more).
 - **Some randomness.** They don't always pick the best-scoring card: picks
   are weighted toward the best, so the same person can surprise you.
 - **Who they sit with:** the table with the most Bond with them (the same
   "would they make room" rules apply to them).
-- **Attacks** follow the same rules as for you. Edgy, status-hungry people
-  are the most tempted, usually toward people at or below their Standing.
+- **Attacks** follow the same rules as for you. Most students see through a
+  put-down's quick win. The status-hungry (unless they're Warm) feel more of
+  the pull, so bullying comes mostly from higher up the ladder.
 
 You always see *which card* someone played and its printed effect on you. You
 can't see their personality, their cards, or what they'll do next.
@@ -551,9 +550,10 @@ screens only change once it passes.
     below 8). Going out gives +1⚡ a morning and backup in put-downs, but
     needs weekly upkeep; breaking up costs Bond with them and their friends.
 12. **No two-timing:** you can't Ask out while going out with someone.
-13. **Bullying is two cards and gossip** (replaces Call out, Don't laugh,
-    put-down replies and Standing together): Put someone down always lands;
-    Stand up to them works by who the room likes; gossip spreads the cost.
+13. **Bullying is two cards and gossip:** immediate Respect from everyone
+    watching but the victim's Friends, and a cost when word gets around a
+    week later. A friend of both never backs the bully, but won't always
+    stand up.
 14. **Simulator first:** the card rules get a headless simulator and pass
     the realism and strategy checks before the game screens change.
 
@@ -562,8 +562,15 @@ screens only change once it passes.
 16. **Friendship takes both:** one Open up a week, and no Friends until both
     have opened up.
 
+17. **17 cards, many phrases.** Variety is in what's said, not in card names.
+18. **Conversations take turns:** answer when spoken to, and nobody twice in
+    a row while someone else wants to speak.
+
 ## 13. Open questions
 
 1. **How many cards a day?** With no hand, the number of copies you own is
    your daily vocabulary. Start around 25–30 cards for a new student and
    tune with the realism and strategy experiments.
+2. **Designed but not built, and not in the 17:** Introduce, Call in a favor,
+   Keep a secret (and telling one), and Leave them out as a card (it happens
+   only as a seating rule). Build any of them, or drop them?
