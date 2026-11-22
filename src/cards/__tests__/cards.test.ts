@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { CARDS, collection, costOf, hearing, type Ctx } from '../cards';
-import { intimate, play, runConvo } from '../convo';
+import { CARDS, collection, costOf, hearing, standUpOdds, usesLeft, type Ctx } from '../cards';
+import { intimate, nextSpeaker, play, runConvo } from '../convo';
 import { runSemester } from '../day';
-import { LEVEL } from '../rules';
-import { weekly } from '../school';
+import { LEVEL, OPEN_UPS_PER_WEEK } from '../rules';
+import { recomputeStanding, weekly } from '../school';
 import type { Convo } from '../types';
 import { applyEffects, bond, createWorld, noEffects } from '../world';
 
@@ -42,13 +42,63 @@ describe('the printed rules', () => {
     expect(bond(w, 0, 1)).toBe(3);
   });
 
-  it('stops casual cards at 7 (the depth rule); deep cards go past it', () => {
+  it('stops casual cards at 7 (the depth rule); deep cards go past it once both have opened up', () => {
     const w = school();
+    w.openedUp.fill(0);
     set(w, 0, 1, 7);
     applyEffects(w, { bond: [{ a: 0, b: 1, d: 2 }], respect: [], energy: [] }, 0, [0, 1]);
     expect(bond(w, 0, 1)).toBe(7);
-    applyEffects(w, { bond: [{ a: 0, b: 1, d: 2, deep: true }], respect: [], energy: [] }, 0, [0, 1]);
+    const deep = () => applyEffects(w, { bond: [{ a: 0, b: 1, d: 2, deep: true }], respect: [], energy: [] }, 0, [0, 1]);
+    deep();
+    expect(bond(w, 0, 1)).toBe(7);
+    w.openedUp[1] = 1; // one way isn't enough
+    deep();
+    expect(bond(w, 0, 1)).toBe(7);
+    w.openedUp[w.n] = 1;
+    deep();
     expect(bond(w, 0, 1)).toBe(9);
+  });
+
+  it('limits how often you can open up in a week', () => {
+    const w = school();
+    w.people[0].openUpsThisWeek = OPEN_UPS_PER_WEEK;
+    expect(usesLeft(w, 0, collection(w, 0), 'openup')).toBe(0);
+    weekly(w);
+    expect(usesLeft(w, 0, collection(w, 0), 'openup')).toBe(1);
+  });
+
+  it('fades Friends who were apart all week, or went four weeks without a deep moment', () => {
+    const w = school();
+    w.day = 40;
+    for (const [a, b] of [[0, 1], [2, 3], [4, 5]]) set(w, a, b, 9);
+    const at = (a: number, b: number, contact: number, deep: number) => {
+      w.contact[a * w.n + b] = contact;
+      w.deepContact[a * w.n + b] = deep;
+    };
+    at(0, 1, 40, 35);
+    at(2, 3, 30, 35);
+    at(4, 5, 40, 5);
+    weekly(w);
+    expect([bond(w, 0, 1), bond(w, 2, 3), bond(w, 4, 5)]).toEqual([9, 8, 8]);
+  });
+
+  it('turns being turned down into an embarrassing story for those who were there', () => {
+    const w = school();
+    play(w, convo([0, 1, 2]), 0, 'askout', 1);
+    const s = w.stories.find((x) => x.kind === 'turneddown')!;
+    expect([s.actor, s.target, s.embarrassing]).toEqual([0, 1, true]);
+    expect(w.people[2].stories.has(s.id)).toBe(true);
+  });
+
+  it('sets the record straight on Sunday once a rumor is found out', () => {
+    const w = school();
+    set(w, 0, 2, 3);
+    w.stories.push({ id: 0, kind: 'rumor', actor: 1, target: -1, day: 0, true: false, mean: true, madeUpBy: 0, foundOut: true });
+    w.people[2].stories.add(0);
+    weekly(w);
+    expect(bond(w, 0, 2)).toBe(2);
+    expect(w.respect[2 * w.n + 0]).toBe(1); // the liar
+    expect(w.respect[2 * w.n + 1]).toBe(3); // who it was about
   });
 
   it('makes friends take sides: hurting someone costs you Bond with their Friends who are there', () => {
@@ -87,14 +137,15 @@ describe('the printed rules', () => {
     expect(w.tally.get('twoFacedCaught')).toBe(1);
   });
 
-  it('drops someone a Standing step when three people push back on them in a week', () => {
-    const w = school();
-    w.standing[5] = 4;
-    w.week.pushback.set(5, new Set([1, 2, 3]));
-    weekly(w);
-    // Standing is recomputed first, then the step down is applied.
-    expect(w.tally.get('stoodTogether')).toBe(1);
-    expect(w.people[5].meanCostUntil).toBeGreaterThan(w.day);
+  it('makes popularity friends plus people who respect you', () => {
+    const w = school(10);
+    w.respect.fill(2);
+    set(w, 0, 1, LEVEL.friends); // 10 each
+    for (let from = 3; from < 10; from++) w.respect[from * w.n + 2] = 3; // 7
+    recomputeStanding(w);
+    expect(w.standing[0]).toBe(5);
+    expect(w.standing[1]).toBe(5);
+    expect(w.standing[2]).toBe(4);
   });
 
   it('lets response cards be played only right after the line they answer', () => {
@@ -135,12 +186,13 @@ describe('gossip', () => {
     const { verdict, fx } = hearing(w, story(5, true), 0, 9);
     expect(verdict).toBe('believed');
     expect(fx.respect).toEqual([{ from: 9, to: 5, d: -1 }]);
+    expect(fx.bond).toEqual([{ a: 0, b: 9, d: 1 }, { a: 5, b: 9, d: -1, hearsay: true }]);
   });
 
   it('makes people side with their friend when they\'re closer to the subject than to the teller', () => {
     const w = school();
     set(w, 9, 0, 1);
-    set(w, 9, 5, 6);
+    set(w, 9, 5, LEVEL.friends);
     const { verdict, fx } = hearing(w, story(5, true), 0, 9);
     expect(verdict).toBe('loyal');
     expect(fx.respect).toEqual([]);
@@ -154,6 +206,75 @@ describe('gossip', () => {
     const { verdict, fx } = hearing(w, story(5, false), 0, 9);
     expect(verdict).toBe('false');
     expect(fx.bond).toEqual([{ a: 0, b: 9, d: -2 }]);
+  });
+});
+
+describe('bullying', () => {
+  it('hurts the victim, and pleases only the bully\'s Friends who aren\'t theirs', () => {
+    const w = school();
+    for (const [a, b] of [[0, 2], [0, 3], [1, 3]]) set(w, a, b, LEVEL.friends);
+    set(w, 0, 1, 3);
+    set(w, 0, 4, 3);
+    play(w, convo([0, 1, 2, 3, 4]), 0, 'putdown', 1);
+    expect(bond(w, 0, 1)).toBe(-1);
+    expect(bond(w, 0, 2)).toBe(LEVEL.friends + 1);
+    expect(bond(w, 0, 3)).toBe(LEVEL.friends - 1); // taking sides
+    expect(bond(w, 0, 4)).toBe(3);
+    expect(bond(w, 1, 3)).toBe(LEVEL.friends);
+    expect([2, 3, 4].map((l) => w.respect[l * w.n])).toEqual([4, 2, 4]); // an immediate win, but no boost from the victim's friends
+  });
+
+  it('has a friend of both believe the gossip and never back the bully, without always backing a stand-up', () => {
+    const w = school();
+    for (const [a, b] of [[0, 3], [1, 3]]) set(w, a, b, LEVEL.close);
+    const s = { id: -1, kind: 'putdown' as const, actor: 0, target: 1, day: 0, true: true, mean: true };
+    expect(hearing(w, s, 2, 3).verdict).toBe('believed');
+    expect(hearing(w, s, 2, 3).fx.respect).toEqual([{ from: 3, to: 0, d: -1 }]);
+    const c = convo([0, 1, 2, 3]);
+    play(w, c, 0, 'putdown', 1);
+    const last = c.plays[0];
+    expect(standUpOdds({ w, c, me: 2, last }, 0)).toBe(4 / 6); // only the victim backs a near-stranger
+    expect(standUpOdds({ w, c, me: 1, last }, 0)).toBe(4 / 6); // the friend backs the victim themselves
+  });
+
+  it('lets anyone who saw it stand up to the bully, with odds set by who the room likes', () => {
+    const w = school();
+    const c = convo([0, 1, 2, 3]);
+    play(w, c, 0, 'putdown', 1);
+    const ctx: Ctx = { w, c, me: 2, last: c.plays[0] };
+    expect(CARDS.standup.targets(ctx, '')).toEqual([0]);
+    set(w, 1, 2, 2);
+    set(w, 3, 2, 2);
+    expect(standUpOdds(ctx, 0)).toBe(5 / 6);
+    set(w, 3, 0, 5);
+    expect(standUpOdds(ctx, 0)).toBe(3 / 6); // the victim for, 3 against
+    const [works, fails] = CARDS.standup.outcomes(ctx, 0, '');
+    expect(works.fx.respect).toContainEqual({ from: 3, to: 0, d: -2 });
+    expect(works.fx.bond).toContainEqual({ a: 0, b: 3, d: -2 });
+    expect(fails.fx.respect).toContainEqual({ from: 3, to: 2, d: -1 });
+  });
+
+  it('lets standing up to a put-down go before the bully can talk on', () => {
+    const w = school();
+    set(w, 0, 3, 11); // the bully would otherwise win the floor
+    const c = convo([0, 1, 2, 3]);
+    const intent = (key: string, urgency: 1 | 2) => ({ key, urgency, target: 0, cost: 0, score: 1 });
+    const intents = new Map([[0, intent('talk:anime', 2)], [2, intent('standup', 1)]]);
+    expect(nextSpeaker(w, c, [0, 2], intents)).toBe(0);
+    play(w, c, 0, 'putdown', 1);
+    expect(nextSpeaker(w, c, [0, 2], intents)).toBe(2);
+  });
+
+  it('lets the victim tell the story, and hearsay is not a first impression', () => {
+    const w = school();
+    play(w, convo([0, 1]), 0, 'putdown', 1);
+    const c = convo([1, 5]);
+    expect(CARDS.story.targets({ w, c, me: 1, last: null }, '0')).toEqual([]); // word takes a week to get around
+    w.day = 7;
+    expect(CARDS.story.targets({ w, c, me: 1, last: null }, '0')).toEqual([-1]);
+    play(w, c, 1, 'story:0', -1);
+    expect(bond(w, 0, 5)).toBe(-1); // not doubled
+    expect(w.met[5]).toBe(0);
   });
 });
 

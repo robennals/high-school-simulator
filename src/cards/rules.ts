@@ -45,20 +45,56 @@ export const STORY_DAYS = 14;
 export const FAVOR_DAYS = 14;
 
 /**
- * Fading: a Friendly Bond drops by 1 a week without any contact; Friends need a deep moment within two
- * weeks, and Close friends within three.
+ * Fading: a Friendly or Friends Bond drops by 1 a week without a conversation together; Friends also need a deep
+ * moment within four weeks, and Close friends within three.
  */
 export const FADE_AFTER_DAYS = 7;
-export const FRIEND_FADE_AFTER_DAYS = 14;
+export const FRIEND_FADE_AFTER_DAYS = 28;
 export const CLOSE_FADE_AFTER_DAYS = 21;
 
-/** Standing together: this many different people pushing back on someone in a week drops them a step. */
-export const STANDING_TOGETHER = 3;
+/**
+ * Opening up is for a few people: each person can play Open up this many times a week. Both ways: you
+ * can't become Friends (past 7) until you've both opened up to each other.
+ */
+export const OPEN_UPS_PER_WEEK = 1;
+
+/** Popularity: this much for each Friend, and 1 for each person whose Respect for you is at least RESPECTS. */
+export const POPULARITY_PER_FRIEND = 10;
+export const RESPECTS = 3;
 
 /** Trying too hard: this many warm cards at someone of higher Standing, with none back, costs Respect. */
 export const TRYING_TOO_HARD = 3;
 
 /** Asking out needs this much Bond. */
-export const ASK_OUT_BOND = 10;
+export const ASK_OUT_BOND = 7;
 /** A couple whose Bond falls below this breaks up. */
 export const COUPLE_MIN_BOND = 8;
+
+/** Every number in bullying, to tweak in one place. */
+export const BULLYING = {
+  /** Put someone down: what it does to the Bond with the victim. */
+  victimBond: -4,
+  /** ...everyone watching who isn't the victim's Friend respects the bully this much more, at once. */
+  watchersRespect: 2,
+  /** Word takes time to get around: a put-down can't be told as a story until this many days later. */
+  gossipAfterDays: 7,
+  /** ...and with the bully's Friends who are there and aren't the victim's Friends. */
+  friendsBond: 1,
+  /** Stand up to them: chances in 6 before counting the room, and the limits. */
+  standUpStart: 3,
+  standUpMin: 1,
+  standUpMax: 5,
+  /** It works: the bully loses this with everyone there... */
+  shamedBond: -2,
+  shamedRespect: -2,
+  /** ...and whoever stood up gains this Respect from each. */
+  standUpRespect: 1,
+  /** It fails: whoever stood up loses this Respect from each. */
+  standUpFailRespect: -1,
+  /** Either way, the victim's Bond with whoever stood up for them, and the bully's. */
+  gratefulBond: 3,
+  standUpBond: -2,
+  /** Gossip: each listener who doesn't back the bully likes and respects them this much less. */
+  gossipBond: -1,
+  gossipRespect: -1,
+} as const;

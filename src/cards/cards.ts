@@ -4,12 +4,12 @@
  * them — so the other students' policy can weigh a card before playing it. `convo.ts` plays them.
  *
  * Card keys: a name, sometimes with an argument after a colon — `opinion:3:1` (love topic 3),
- * `talk:anime`, `brag:humor`, `help:academics`, `story:12`, `callout:7`.
+ * `talk:anime`, `brag:humor`, `help:academics`, `story:12`.
  */
 import { ABILITIES, type Ability, type Interest } from '../sim/content';
-import { ASK_OUT_BOND, LEVEL, STORY_DAYS } from './rules';
+import { ASK_OUT_BOND, BULLYING, LEVEL, OPEN_UPS_PER_WEEK, STORY_DAYS } from './rules';
 import type { Convo, Person, Play, Story, World } from './types';
-import { SHOWS, bond, closeFriendsOf, drawnTo, noEffects, type Effects } from './world';
+import { SHOWS, bond, closeFriendsOf, drawnTo, isFriend, noEffects, type Effects } from './world';
 
 export type CardKind = 'starter' | 'response' | 'deep' | 'move' | 'attack' | 'pushback';
 
@@ -77,29 +77,46 @@ function admirers(ctx: Ctx, q: string): number[] {
   return others(ctx).filter((l) => ctx.w.people[l].personality.admires.includes(q as never));
 }
 
+/** Friends of a bully back them, unless the victim is their friend too: then they favor the victim. */
+export function backsBully(w: World, who: number, bully: number, victim: number): boolean {
+  return isFriend(w, who, bully) && !(victim >= 0 && isFriend(w, who, victim));
+}
+
 /**
- * How a listener takes a story they hadn't heard (spec §8 rule 7):
- * - **They know it's false** — a rumor about them, or about their Friend (Bond 8+): they turn against
- *   the teller (Bond −2) and learn that the teller spread a lie.
- * - **They're closer to the person it's about than to the teller** — they side with their friend:
- *   they don't believe it, and the teller loses 1 Bond with them for badmouthing their friend.
- * - **Otherwise they believe it:** the teller gets Bond +1 (juicy news) and, for a story of something
- *   mean, the listener's Respect for the person it's about −1 — unless the teller has told three or
- *   more stories this week (then no one takes them seriously).
+ * How a listener takes a story they hadn't heard (spec §8 rule 7). The teller gets Bond +1 for the news, and:
+ * - **A true story of meanness:** they like and respect whoever was mean 1 less, unless they back them
+ *   (that person's Friend, and not the victim's).
+ * - **A rumor, or something embarrassing:** they respect the person it's about 1 less.
+ * Two ways it goes wrong for the teller:
+ * - **They know it's false** (a rumor about them, or someone they're Friendly with): Bond −2.
+ * - **Loyalty:** they're closer to the person it's about than to the teller (for meanness: and back
+ *   them): Bond −1, and the story does nothing.
+ * After three stories in a week, your stories stop hurting whoever they're about.
  */
 export function hearing(w: World, s: Story, teller: number, listener: number): { verdict: 'false' | 'loyal' | 'believed'; fx: Effects } {
   const fx = noEffects();
   const about = s.actor;
-  if (!s.true && (listener === about || bond(w, listener, about) >= LEVEL.friends)) {
+  // A rumor is recognized as false by the person it's about and anyone Friendly or closer with them.
+  if (!s.true && (listener === about || bond(w, listener, about) >= LEVEL.friendly)) {
     fx.bond.push({ a: teller, b: listener, d: -2 });
     return { verdict: 'false', fx };
   }
-  if (s.mean && listener !== about && bond(w, listener, about) > bond(w, listener, teller)) {
+  const meanness = s.true && s.mean;
+  const bad = s.mean || !!s.embarrassing;
+  const backs = backsBully(w, listener, about, s.target);
+  const closer = bond(w, listener, about) > bond(w, listener, teller);
+  if (bad && listener !== about && closer && (backs || !meanness)) {
     fx.bond.push({ a: teller, b: listener, d: -1 });
     return { verdict: 'loyal', fx };
   }
   fx.bond.push({ a: teller, b: listener, d: 1 });
-  if (s.mean && listener !== about && w.people[teller].gossipThisWeek < 3) fx.respect.push({ from: listener, to: about, d: -1 });
+  if (bad && listener !== about && w.people[teller].gossipThisWeek < 3) {
+    if (!meanness) fx.respect.push({ from: listener, to: about, d: -1 });
+    else if (!backs) {
+      fx.bond.push({ a: about, b: listener, d: BULLYING.gossipBond, hearsay: true });
+      fx.respect.push({ from: listener, to: about, d: BULLYING.gossipRespect });
+    }
+  }
   // Learning a rumor was a lie undoes the damage: the person it was about regains your Respect.
   if (s.kind === 'lied' && s.target >= 0 && listener !== s.target) fx.respect.push({ from: listener, to: s.target, d: 1 });
   return { verdict: 'believed', fx };
@@ -258,7 +275,11 @@ export const CARDS: Record<string, CardDef> = {
     targets: (ctx, arg) => {
       const s = freshStory(ctx.w, Number(arg));
       // You don't tell a story about someone who's right there.
-      if (!s || ctx.c.members.includes(s.actor) || ctx.c.members.includes(s.target)) return [];
+      if (!s || ctx.c.members.includes(s.actor)) return [];
+      // Word takes time to get around: that's the week in which bullying seems to work.
+      if (s.kind === 'putdown' && ctx.w.day - s.day < BULLYING.gossipAfterDays) return [];
+      // ...except that you can tell what was done to you.
+      if (ctx.c.members.includes(s.target) && !(s.mean && s.target === ctx.me)) return [];
       // ...or one everyone here already knows.
       return others(ctx).some((l) => !ctx.w.people[l].stories.has(s.id)) ? [-1] : [];
     },
@@ -272,7 +293,20 @@ export const CARDS: Record<string, CardDef> = {
     mean: true,
     // A made-up story about someone you can't stand, who isn't here to hear it.
     targets: (ctx, arg) => (ctx.c.members.includes(Number(arg)) ? [] : [-1]),
-    outcomes: (ctx, _t, arg) => sure(tellingFx(ctx, { id: -1, kind: 'rumor', actor: Number(arg), target: -1, day: ctx.w.day, true: false, mean: true, madeUpBy: ctx.me })),
+    // Printed: it usually gets found out — and then everyone who heard it from you turns on you.
+    outcomes: (ctx, _t, arg) => {
+      const now = tellingFx(ctx, { id: -1, kind: 'rumor', actor: Number(arg), target: -1, day: ctx.w.day, true: false, mean: true, madeUpBy: ctx.me });
+      const later = noEffects();
+      for (const l of others(ctx)) {
+        later.bond.push({ a: ctx.me, b: l, d: -1 });
+        later.respect.push({ from: l, to: ctx.me, d: -1 });
+      }
+      const caught: Effects = { bond: [...now.bond, ...later.bond], respect: [...now.respect, ...later.respect], energy: [] };
+      return [
+        { p: 0.15, fx: now },
+        { p: 0.85, fx: caught },
+      ];
+    },
   },
 
   // Responses --------------------------------------------------------------------------------------
@@ -533,60 +567,60 @@ export const CARDS: Record<string, CardDef> = {
     aim: 'one',
     mean: true,
     targets: (ctx) => others(ctx),
-    // The real result is decided in the room (convo.ts: resolvePutdown). This is the player's estimate.
-    outcomes: (ctx, t) => {
-      const pWin = putdownOdds(ctx, t);
-      const win = noEffects();
-      const lose = noEffects();
-      for (const fx of [win, lose]) fx.bond.push({ a: ctx.me, b: t, d: -3 });
-      for (const l of others(ctx)) {
-        if (l === t) continue;
-        win.respect.push({ from: l, to: ctx.me, d: 1 });
-        lose.respect.push({ from: l, to: ctx.me, d: -1 });
-      }
-      return [
-        { p: pWin, fx: win, success: true },
-        { p: 1 - pWin, fx: lose, success: false },
-      ];
-    },
-  },
-
-  // Pushing back against meanness ------------------------------------------------------------------
-  callout: {
-    name: 'Call out',
-    kind: 'pushback',
-    cost: 2,
-    aim: 'one',
-    targets: (ctx, arg) => {
-      const s = freshStory(ctx.w, Number(arg));
-      return s && s.true && s.mean && ctx.c.members.includes(s.actor) && s.actor !== ctx.me ? [s.actor] : [];
-    },
+    // It always lands, and works at once. What it costs you comes later: standing up to you, and gossip.
     outcomes: (ctx, t) => {
       const fx = noEffects();
-      for (const l of others(ctx)) if (l !== t) fx.respect.push({ from: l, to: t, d: -1 });
-      fx.bond.push({ a: ctx.me, b: t, d: -2 });
-      // Not alone: someone already pushed back on them this week.
-      if ((ctx.w.week.pushback.get(t)?.size ?? 0) > 0) fx.energy.push({ id: ctx.me, d: 1 });
+      fx.bond.push({ a: ctx.me, b: t, d: BULLYING.victimBond });
+      const N = P(ctx, t).personality.N;
+      fx.energy.push({ id: t, d: N === 1 ? -3 : N === -1 ? 0 : -2 });
+      for (const l of audience(ctx, true)) {
+        if (l === t) continue;
+        // The victim's Friends may or may not stand up for them, but they give the bully no boost.
+        if (isFriend(ctx.w, l, t)) continue;
+        // Everyone else is impressed, for now.
+        fx.respect.push({ from: l, to: ctx.me, d: BULLYING.watchersRespect });
+        if (backsBully(ctx.w, l, ctx.me, t)) fx.bond.push({ a: ctx.me, b: l, d: BULLYING.friendsBond, amongFriends: true });
+      }
       return sure(fx);
     },
   },
 
-  // Played only in the moment after a put-down (convo.ts: resolvePutdown) ----------------------------
+  // Pushing back against meanness ------------------------------------------------------------------
   standup: {
-    name: 'Stand up for them',
-    kind: 'deep',
-    cost: 3,
-    aim: 'one',
-    targets: () => [],
-    outcomes: () => sure(noEffects()),
-  },
-  dontlaugh: {
-    name: "Don't laugh",
+    name: 'Stand up to them',
     kind: 'pushback',
-    cost: 0,
+    cost: 2,
     aim: 'one',
-    targets: () => [],
-    outcomes: () => sure(noEffects()),
+    // Whoever was just mean, or anyone here you know a fresh, true, mean story about.
+    targets: (ctx) => {
+      const mean = new Set(answering(ctx, ['putdown']));
+      for (const id of P(ctx).stories) {
+        const s = freshStory(ctx.w, id);
+        if (s?.true && s.mean && s.actor !== ctx.me && ctx.c.members.includes(s.actor)) mean.add(s.actor);
+      }
+      return [...mean];
+    },
+    outcomes: (ctx, t) => {
+      const works = noEffects();
+      const fails = noEffects();
+      works.bond.push({ a: ctx.me, b: t, d: BULLYING.standUpBond });
+      fails.bond.push({ a: ctx.me, b: t, d: BULLYING.standUpBond });
+      works.energy.push({ id: t, d: -2 });
+      for (const l of audience(ctx, true)) {
+        if (l === t) continue;
+        works.bond.push({ a: t, b: l, d: BULLYING.shamedBond });
+        works.respect.push({ from: l, to: t, d: BULLYING.shamedRespect }, { from: l, to: ctx.me, d: BULLYING.standUpRespect });
+        fails.respect.push({ from: l, to: ctx.me, d: BULLYING.standUpFailRespect });
+      }
+      // Whoever they were just mean to is grateful either way.
+      const victim = ctx.last?.card === 'putdown' && ctx.last.actor === t ? ctx.last.target : -1;
+      if (victim >= 0 && victim !== ctx.me) for (const fx of [works, fails]) fx.bond.push({ a: ctx.me, b: victim, d: BULLYING.gratefulBond, deep: true });
+      const p = standUpOdds(ctx, t);
+      return [
+        { p, fx: works, success: true },
+        { p: 1 - p, fx: fails, success: false },
+      ];
+    },
   },
 
   // Shirt cards (other people's shirts hand you these) --------------------------------------------
@@ -649,18 +683,42 @@ export function tempted(w: World, viewer: number, wearer: number): boolean {
   return false;
 }
 
-/** The bully's estimate of winning a put-down: their Standing and Friends present against the target's. */
-export function putdownOdds(ctx: Ctx, t: number): number {
-  const sideOf = (who: number) => ctx.w.standing[who] + others(ctx).filter((l) => l !== t && l !== who && bond(ctx.w, l, who) >= LEVEL.friends).length;
-  const gap = sideOf(ctx.me) - sideOf(t);
-  return gap >= 2 ? 0.7 : gap >= 1 ? 0.5 : gap >= 0 ? 0.3 : 0.1;
+/** Who a stand-up is for: whoever they just put down, or the victim in the latest mean story you know about them. */
+function victimOf(ctx: Ctx, bully: number): number {
+  if (ctx.last?.card === 'putdown' && ctx.last.actor === bully) return ctx.last.target;
+  let latest: Story | null = null;
+  for (const id of P(ctx).stories) {
+    const s = freshStory(ctx.w, id);
+    if (s?.true && s.mean && s.actor === bully && (!latest || s.id > latest.id)) latest = s;
+  }
+  return latest?.target ?? -1;
+}
+
+/**
+ * The room decides: 3 in 6, +1 for each person here on your side, −1 for each on theirs. The victim is on
+ * your side, and the bully's Friends are on theirs. The victim's Friends are never on the bully's side,
+ * but only on yours if you're the victim or they like you more: being their friend doesn't mean
+ * they'll speak up. Anyone else sides with whoever they like more. Between 1 in 6 and 5 in 6.
+ */
+export function standUpOdds(ctx: Ctx, t: number): number {
+  let n: number = BULLYING.standUpStart;
+  const victim = victimOf(ctx, t);
+  for (const l of audience(ctx, true)) {
+    if (l === t) continue;
+    const likesMeMore = Math.sign(bond(ctx.w, l, ctx.me) - bond(ctx.w, l, t));
+    if (l === victim) n++;
+    else if (victim >= 0 && isFriend(ctx.w, l, victim)) n += ctx.me === victim ? 1 : Math.max(0, likesMeMore);
+    else if (backsBully(ctx.w, l, t, victim)) n--;
+    else n += likesMeMore;
+  }
+  return Math.min(BULLYING.standUpMax, Math.max(BULLYING.standUpMin, n)) / 6;
 }
 
 /**
  * A card's cost for this person, here, now (§7.2 trait cards; §8 rule 14). Outgoing: cards to the
  * table −1. Reserved: cards to a table of 4+ +1. Edgy: Tease, Push back and Brag −1. A teacher in the
- * room: attacks +2. A hoodie: teasing or putting down its wearer +1. After people stand together
- * against you: mean cards +1.
+ * room: attacks +2. A hoodie: teasing or putting down its wearer +1. Reported by a teacher: mean cards
+ * +1 for a week.
  */
 export function costOf(ctx: Ctx, key: string, target: number): number {
   const base = key.split(':')[0];
@@ -675,7 +733,6 @@ export function costOf(ctx: Ctx, key: string, target: number): number {
   if (def.kind === 'attack' && ctx.c.teacher) cost += 2;
   if ((base === 'tease' || base === 'putdown' || base === 'teaseshirt') && target >= 0 && ctx.w.people[target].shirt.style === 'hoodie') cost += 1;
   if ((def.mean || base === 'tease') && ctx.w.day < me.meanCostUntil) cost += 1;
-  if (base === 'callout' && (ctx.w.week.pushback.get(target)?.size ?? 0) > 0) cost -= 1;
   return Math.max(0, cost);
 }
 
@@ -716,9 +773,7 @@ export function collection(w: World, id: number): Map<string, number> {
     }
   for (const sid of p.stories) {
     const s = freshStory(w, sid);
-    if (!s) continue;
-    add(`story:${sid}`, 1);
-    if (s.true && s.mean && s.actor !== id) add(`callout:${sid}`, 1);
+    if (s) add(`story:${sid}`, 1);
   }
   // Responses: personality sets the mix.
   add('listen', 1 + (T.E === -1 ? 1 : 0) + (T.A === 1 ? 1 : 0));
@@ -732,8 +787,7 @@ export function collection(w: World, id: number): Map<string, number> {
   add('impressed', 1);
   add('teaseback', 1 + (T.A === -1 ? 1 : 0));
   add('thank', 1);
-  add('standup', 1);
-  add('dontlaugh', 1 + (T.A === 1 ? 1 : 0));
+  add('standup', 1 + (T.A === 1 ? 1 : 0));
   // Other people's shirts hand you these (free, unlimited: they're about what's in front of you).
   add('askshirt', 1);
   add('teaseshirt', 1);
@@ -755,6 +809,7 @@ export function usesLeft(w: World, id: number, owned: Map<string, number>, key: 
     const told = [...used].reduce((t, [k, v]) => (k.startsWith('story:') || k.startsWith('rumor:') ? t + v : t), 0);
     if (told >= TELLS_PER_DAY) return 0;
   }
+  if (key === 'openup' && w.people[id].openUpsThisWeek >= OPEN_UPS_PER_WEEK) return 0;
   return (owned.get(key) ?? 0) - (used.get(key) ?? 0);
 }
 

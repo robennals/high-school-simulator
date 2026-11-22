@@ -1,10 +1,13 @@
 /**
  * Run a semester under the card rules and print the realism report.
  *
- *   node --import tsx src/headless/cards-sim.ts [--seed 1] [--weeks 16] [--students 200] [--seeds 3]
+ *   node --import tsx src/headless/cards-sim.ts [--seed 1] [--weeks 16] [--students 200] [--seeds 3] [--detail]
+ *
+ * Prints whether the simulation meets each research target (targets.ts); --detail adds each run's numbers.
  */
 import { runSemester } from '../cards/day';
 import { measure, type CardMetrics } from '../cards/metrics';
+import { evaluate } from '../cards/targets';
 import { createWorld } from '../cards/world';
 
 function arg(name: string, fallback: number): number {
@@ -27,11 +30,11 @@ function report(m: CardMetrics, s: number, ms: number) {
   console.log(`groups (3+): ${m.clusters.length}, sizes ${m.clusters.slice(0, 12).join(', ')}${m.clusters.length > 12 ? '…' : ''}`);
   const b = m.bullying;
   console.log(
-    `put-downs ${(100 * b.perStudentDay).toFixed(2)} per 100 student-days; by bully's Standing 1→5: ${b.byStanding.join(' / ')}; bully won ${pct(b.winRate)}; ` +
+    `put-downs ${(100 * b.perStudentDay).toFixed(2)} per 100 student-days; by bully's Standing 1→5: ${b.byStanding.join(' / ')}; ` +
       `Standing change since week 2: bullies ${r2(b.standingChange.bullies)} (n=${b.standingChange.bullyCount}) vs others ${r2(b.standingChange.others)}`,
   );
   const pb = m.pushback;
-  console.log(`pushing back: call-outs ${pb.callouts}, stand-ups ${pb.standUps}, don't-laughs ${pb.dontLaugh}, stood together ${pb.stoodTogether}; two-faced caught ${pb.twoFacedCaught}; trying too hard ${pb.tryingTooHard}`);
+  console.log(`pushing back: stand-ups ${pb.standUps} (${pb.standUpsWorked} worked); two-faced caught ${pb.twoFacedCaught}; trying too hard ${pb.tryingTooHard}`);
   const g = m.gossip;
   console.log(`gossip: ${g.told} stories told; heard and believed ${g.believed}, sided with their friend ${g.loyal}, knew it was a lie ${g.knewFalse}; rumors made up ${g.rumors}, lies found out ${g.liesFoundOut}`);
   console.log(`Standing stability (4 weeks apart) ${r2(m.standingStability)}; Standing vs friends ${r2(m.standingVsFriends)}`);
@@ -41,9 +44,21 @@ function report(m: CardMetrics, s: number, ms: number) {
   console.log(`cards played: ${top.map(([k, v]) => `${k} ${v}`).join(', ')}`);
 }
 
+const runs: CardMetrics[] = [];
 for (let s = seed; s < seed + seeds; s++) {
   const start = Date.now();
   const w = createWorld({ students, seed: s });
   runSemester(w, weeks);
-  report(measure(w), s, Date.now() - start);
+  const m = measure(w);
+  runs.push(m);
+  if (process.argv.includes('--detail')) report(m, s, Date.now() - start);
+}
+
+// The research targets: pass or fail, with the source and how well it's backed.
+const results = evaluate(runs);
+const show = (v: number, t: (typeof results)[number]['target']) => (!Number.isFinite(v) ? '—' : t.format === 'pct' ? pct(v) : r2(v));
+console.log(`\n=== Research targets (${seeds} seed${seeds === 1 ? '' : 's'}, ${weeks} weeks): ${results.filter((x) => x.pass).length} of ${results.length} pass ===`);
+for (const x of results) {
+  console.log(`${x.pass ? 'PASS' : 'FAIL'}  ${x.target.name}: ${show(x.mean, x.target)}  [${x.values.map((v) => show(v, x.target)).join(', ')}]`);
+  console.log(`      want ${x.target.expect} — ${x.target.source} (${x.target.confidence})`);
 }

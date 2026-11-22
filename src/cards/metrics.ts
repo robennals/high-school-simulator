@@ -1,7 +1,7 @@
 /**
  * The realism report for the card rules: the same questions we ask of the current simulation, so the
  * two can be compared (spec §11). Friendships, who befriends whom, groups, bullying and whether it
- * pays, standing together, how stable status is, romance, grades, and how people spend evenings.
+ * pays, standing up to it, how stable status is, romance, grades, and how people spend evenings.
  */
 import { pearson } from '../sim/metrics';
 import { LEVEL } from './rules';
@@ -20,12 +20,10 @@ export interface CardMetrics {
     perStudentDay: number;
     /** Put-downs by the bully's Standing at the time, 1 (bottom) … 5 (top). */
     byStanding: number[];
-    /** Share of put-downs the bully won. */
-    winRate: number;
     /** Average Standing change from week 2 to the end: people who bullied (2+ times) vs everyone else. */
     standingChange: { bullies: number; others: number; bullyCount: number };
   };
-  pushback: { callouts: number; standUps: number; dontLaugh: number; stoodTogether: number; twoFacedCaught: number; tryingTooHard: number };
+  pushback: { standUps: number; standUpsWorked: number; twoFacedCaught: number; tryingTooHard: number };
   gossip: { told: number; believed: number; loyal: number; knewFalse: number; rumors: number; liesFoundOut: number };
   /** Correlation of each person's Standing four weeks apart (1 = never changes). */
   standingStability: number;
@@ -36,6 +34,35 @@ export interface CardMetrics {
   aloneAtLunchPerDay: number;
   silencesPerDay: number;
   cardsPlayed: Record<string, number>;
+  /** Measures for the research targets (targets.ts). */
+  research: {
+    /** Share of students put down, left out, or made the subject of a rumor during the semester. */
+    bulliedShare: number;
+    /** Share of students put down at least once. */
+    putDownShare: number;
+    /** Standing change by the Sunday after someone's first put-down, against non-bullies who had the same Standing. */
+    bullyFirstWeekGain: number;
+    /** Put-downs per student at each Standing, 1 … 5. */
+    putdownRateByStanding: number[];
+    /** Share of put-downs where someone stood up for the target. */
+    interventionRate: number;
+    /** When someone else stepped in, the share where standing up worked. */
+    interventionWorked: number;
+    bullyStandingChange: number;
+    othersStandingChange: number;
+    /** Share of Friend pairs at week 4 still Friends at the end. */
+    friendshipsKept: number;
+    /** Correlation of Standing at week 4 and at the end. */
+    standingStabilityLong: number;
+    rumorsFoundOutShare: number;
+    rumorMakerStandingChange: number;
+    /** Share of students who were in a relationship at some point. */
+    romanceShare: number;
+    /** Median length of relationships that ended, in weeks. */
+    romanceMedianWeeks: number;
+    /** Share of groups (3+) with 9 or fewer members. */
+    groupsUpTo9: number;
+  };
 }
 
 export function measure(w: World): CardMetrics {
@@ -101,7 +128,63 @@ export function measure(w: World): CardMetrics {
   const totalEvenings = Object.values(evenings).reduce((a, b) => a + b, 0) || 1;
   for (const k of Object.keys(evenings)) evenings[k] = Math.round((100 * evenings[k]) / totalEvenings);
   const schoolDays = Math.ceil((w.day * 5) / 7) || 1;
+  // Research measures.
+  const victims = new Set<number>();
+  for (const p of w.putdowns) victims.add(p.target);
+  for (const s of w.stories) {
+    if (s.kind === 'leaveout') victims.add(s.target);
+    if (s.kind === 'rumor') victims.add(s.actor);
+  }
+  const perStanding = [0, 0, 0, 0, 0];
+  for (const st of w.standingHistory.length ? w.standingHistory : [w.standing]) for (const v of st) perStanding[v - 1] += 1 / Math.max(1, w.standingHistory.length);
+  const rateByStanding = byStanding.map((c, i) => c / Math.max(1, perStanding[i]));
+  const stood = w.putdowns.filter((p) => p.intervened);
+  let kept = 0;
+  let had = 0;
+  if (w.friendsWeek4)
+    for (let a = 0; a < n; a++)
+      for (let b = a + 1; b < n; b++)
+        if (w.friendsWeek4[a * n + b]) {
+          had++;
+          if (w.bond[a * n + b] >= LEVEL.friends) kept++;
+        }
+  const rumors = w.stories.filter((s) => s.kind === 'rumor');
+  const makers = [...new Set(rumors.flatMap((s) => s.madeUpBy ?? []))];
+  const inRomance = new Set(w.romances.flatMap((r) => [r.a, r.b]));
+  // Every relationship, counting ones still going as lasting until today (otherwise only the short ones count).
+  const ended = w.romances.map((r) => ((r.end >= 0 ? r.end : w.day) - r.start) / 7).sort((a, b) => a - b);
+  const week4 = w.standingHistory[3];
+  // Does bullying pay at first? Compare like with like: high Standing drifts down for everyone.
+  const firstPutdown = new Map<number, number>();
+  for (const p of w.putdowns) if (!firstPutdown.has(p.bully)) firstPutdown.set(p.bully, p.day);
+  const gains: number[] = [];
+  for (const [id, day] of firstPutdown) {
+    const k = Math.floor(day / 7);
+    const after = hist[k];
+    if (!after) continue;
+    const before = (o: number) => (k ? hist[k - 1][o] : 3); // everyone starts at 3
+    const peers = w.people.map((p) => p.id).filter((o) => !firstPutdown.has(o) && before(o) === before(id));
+    if (peers.length) gains.push(after[id] - before(id) - mean(peers.map((o) => after[o] - before(o))));
+  }
+  const research = {
+    bulliedShare: victims.size / n,
+    putDownShare: new Set(w.putdowns.map((p) => p.target)).size / n,
+    putdownRateByStanding: rateByStanding,
+    interventionRate: w.putdowns.length ? stood.length / w.putdowns.length : 0,
+    interventionWorked: stood.length ? stood.filter((p) => p.stopped).length / stood.length : NaN,
+    bullyFirstWeekGain: gains.length ? mean(gains) : NaN,
+    bullyStandingChange: mean(bullies.map(change)),
+    othersStandingChange: mean(othersIds.map(change)),
+    friendshipsKept: had ? kept / had : NaN,
+    standingStabilityLong: week4 ? pearson([...week4].map(Number), [...w.standing].map(Number)) : NaN,
+    rumorsFoundOutShare: rumors.length ? rumors.filter((s) => s.foundOut).length / rumors.length : NaN,
+    rumorMakerStandingChange: makers.length ? mean(makers.map(change)) : NaN,
+    romanceShare: inRomance.size / n,
+    romanceMedianWeeks: ended.length ? ended[Math.floor(ended.length / 2)] : NaN,
+    groupsUpTo9: clusters.length ? clusters.filter((x) => x <= 9).length / clusters.length : NaN,
+  };
   return {
+    research,
     weeks: Math.floor(w.day / 7),
     friends: {
       mean: mean(friendCounts),
@@ -117,10 +200,9 @@ export function measure(w: World): CardMetrics {
     bullying: {
       perStudentDay: w.putdowns.length / (n * Math.max(1, w.day)),
       byStanding,
-      winRate: w.putdowns.length ? w.putdowns.filter((p) => p.won).length / w.putdowns.length : 0,
       standingChange: { bullies: mean(bullies.map(change)), others: mean(othersIds.map(change)), bullyCount: bullies.length },
     },
-    pushback: { callouts: t('callouts'), standUps: t('standUps'), dontLaugh: t('dontLaugh'), stoodTogether: t('stoodTogether'), twoFacedCaught: t('twoFacedCaught'), tryingTooHard: t('tryingTooHard') },
+    pushback: { standUps: t('standUps'), standUpsWorked: t('standUpsWorked'), twoFacedCaught: t('twoFacedCaught'), tryingTooHard: t('tryingTooHard') },
     gossip: { told: t('storiesTold'), believed: t('heard:believed'), loyal: t('heard:loyal'), knewFalse: t('heard:false'), rumors: t('rumors'), liesFoundOut: t('liesFoundOut') },
     standingStability: stability,
     standingVsFriends: pearson([...w.standing].map(Number), friendCounts),

@@ -51,6 +51,11 @@ function setBond(w: World, a: number, b: number, v: number) {
   w.bond[b * w.n + a] = x;
 }
 
+/** Record that everyone in a conversation spent time together today (the fading rule counts this). */
+export function together(w: World, members: number[]) {
+  for (const a of members) for (const b of members) if (a !== b) w.contact[a * w.n + b] = w.day;
+}
+
 function touch(w: World, a: number, b: number) {
   w.contact[a * w.n + b] = w.day;
   w.contact[b * w.n + a] = w.day;
@@ -72,7 +77,11 @@ export function count(w: World, key: string, by = 1) {
 
 /** What a card does, as a list of changes, before the school rules are applied. */
 export interface Effects {
-  bond: { a: number; b: number; d: number; deep?: boolean }[];
+  /**
+   * hearsay: not a first impression and not time together (you weren't there).
+   * amongFriends: the depth rule doesn't apply (they already are Friends).
+   */
+  bond: { a: number; b: number; d: number; deep?: boolean; hearsay?: boolean; amongFriends?: boolean }[];
   respect: { from: number; to: number; d: number }[];
   energy: { id: number; d: number }[];
 }
@@ -87,19 +96,20 @@ export function noEffects(): Effects {
  * - **First impressions count double** (§8 rule 1): the first time a pair's Bond changes, the change is
  *   doubled — plus *One of us* (same look: +1), good Style (Style 3+: +1), and *Sharp* (an edgy
  *   person's first card with someone of lower Standing: −1).
- * - **The depth rule** (§2): a casual card can't raise a Bond past 7.
+ * - **The depth rule** (§2): a casual card can't raise a Bond past 7, and a deep one can only once both
+ *   have opened up to each other. (Friends bonding over a put-down are already past it.)
  * - **Same gender** (first impressions): +1 between people of the same gender.
  * - **Taking sides** (§8 rule 5): when the card's player lowers someone's Bond, that person's Friends
  *   who are present lose 1 Bond with the player; their Enemies who are present gain 1.
  */
 export function applyEffects(w: World, fx: Effects, actor: number, present: number[]) {
   const n = w.n;
-  for (const { a, b, deep } of fx.bond) touch(w, a, b);
+  for (const { a, b, hearsay } of fx.bond) if (!hearsay) touch(w, a, b);
   for (const e of fx.bond) {
     if (e.a === e.b) continue;
     let d = e.d;
     const key = e.a * n + e.b;
-    if (!w.met[key]) {
+    if (!w.met[key] && !e.hearsay) {
       w.met[key] = 1;
       w.met[e.b * n + e.a] = 1;
       d *= 2;
@@ -118,8 +128,10 @@ export function applyEffects(w: World, fx: Effects, actor: number, present: numb
       w.deepContact[e.b * n + e.a] = w.day;
     }
     const now = bond(w, e.a, e.b);
+    // Both ways: you can't become Friends until you've both opened up to each other.
+    const mutual = w.openedUp[e.a * n + e.b] && w.openedUp[e.b * n + e.a];
     let next = now + d;
-    if (d > 0 && !e.deep) next = Math.min(next, Math.max(now, CASUAL_CAP));
+    if (d > 0 && !e.amongFriends && (!e.deep || !mutual)) next = Math.min(next, Math.max(now, CASUAL_CAP));
     setBond(w, e.a, e.b, next);
     // Taking sides.
     if (d < 0 && (e.a === actor || e.b === actor)) {
@@ -231,6 +243,7 @@ export function createWorld(opts: WorldOptions): World {
       partner: -1,
       stories: new Set(),
       gossipThisWeek: 0,
+      openUpsThisWeek: 0,
       favors: new Map(),
       used: new Map(),
       earned: new Map(),
@@ -254,9 +267,10 @@ export function createWorld(opts: WorldOptions): World {
     deepContact: new Int16Array(n * n).fill(-1),
     standing: new Int8Array(n).fill(3),
     stories: [],
-    week: { warm: new Uint8Array(n * n), pushback: new Map(), coupleTime: new Map() },
+    week: { warm: new Uint8Array(n * n), coupleTime: new Map() },
     tally: new Map(),
     putdowns: [],
+    romances: [],
     sections: Array.from({ length: PERIODS }, () => {
       const s = new Int16Array(n);
       for (let i = 0; i < n; i++) s[i] = rng.int(SECTIONS);
@@ -264,6 +278,7 @@ export function createWorld(opts: WorldOptions): World {
     }),
     standingHistory: [],
     knows: new Uint8Array(n * n),
+    openedUp: new Uint8Array(n * n),
     claims: new Map(),
     hangouts: [],
   };
@@ -280,6 +295,7 @@ export function createWorld(opts: WorldOptions): World {
         w.met[a * n + b] = w.met[b * n + a] = 1;
         // Old friends start the year as if they'd just spent time together.
         w.deepContact[a * n + b] = w.deepContact[b * n + a] = 0;
+        if (v >= LEVEL.close) w.openedUp[a * n + b] = w.openedUp[b * n + a] = 1;
       }
     }
   return w;

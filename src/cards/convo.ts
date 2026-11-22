@@ -1,13 +1,13 @@
 /**
  * Conversations (spec §5): a series of moments. In each moment everyone chooses to stay quiet, say
- * something, or jump in; whoever wants to speak most does, and plays one card. Put-downs are settled
+ * something, or jump in; whoever wants to speak most does, and plays one card. Put-downs are answered
  * in the room, with bystanders choosing sides.
  */
 import { CARDS, collection, costOf, freshStory, hearing, usesLeft, type Ctx } from './cards';
 import { choose, type Intent } from './policy';
 import { FAVOR_DAYS, LEVEL } from './rules';
 import type { Convo, Play, Story, World } from './types';
-import { applyEffects, bond, count, noEffects, type Effects } from './world';
+import { applyEffects, bond, count, noEffects, together, type Effects } from './world';
 
 export interface ConvoOptions {
   private?: boolean;
@@ -18,6 +18,7 @@ export interface ConvoOptions {
 export function runConvo(w: World, members: number[], onlookers: number[], moments: number, opts: ConvoOptions = {}): Convo {
   const c: Convo = { members: [...members], onlookers, private: !!opts.private, teacher: !!opts.teacher, plays: [] };
   if (c.members.length < 2) return c;
+  together(w, c.members);
   const owned = new Map(c.members.map((id) => [id, collection(w, id)]));
   for (let m = 0; m < moments && c.members.length >= 2; m++) {
     const last = c.plays[c.plays.length - 1] ?? null;
@@ -31,20 +32,16 @@ export function runConvo(w: World, members: number[], onlookers: number[], momen
       if (w.rng.chance(0.5)) break;
       continue;
     }
-    // Who speaks: jumping in beats saying something; then most Bond with the table; then Standing.
-    const table = (id: number) => c.members.reduce((t, o) => (o === id ? t : t + bond(w, id, o)), 0);
-    const speaker = wanting.reduce((a, b) => {
-      const ia = intents.get(a)!;
-      const ib = intents.get(b)!;
-      if (ia.urgency !== ib.urgency) return ia.urgency > ib.urgency ? a : b;
-      if (table(a) !== table(b)) return table(a) > table(b) ? a : b;
-      if (w.standing[a] !== w.standing[b]) return w.standing[a] > w.standing[b] ? a : b;
-      return w.rng.chance(0.5) ? a : b;
-    });
+    const speaker = nextSpeaker(w, c, wanting, intents);
     const intent = intents.get(speaker)!;
     const fx = noEffects();
-    // Talking over someone who also wanted to speak costs Bond with them.
-    if (intent.urgency === 2) for (const o of wanting) if (o !== speaker) fx.bond.push({ a: speaker, b: o, d: -1 });
+    // Talking over someone who also wanted to speak annoys them: −1 Bond with Acquaintances (1–3).
+    // Annoying isn't dislike — it can't take a Bond below 0 — and people who like you let it slide.
+    if (intent.urgency === 2)
+      for (const o of wanting) {
+        const b = bond(w, speaker, o);
+        if (o !== speaker && b >= LEVEL.acquaintances && b < LEVEL.friendly) fx.bond.push({ a: speaker, b: o, d: -1 });
+      }
     if (intent.urgency === 2) fx.energy.push({ id: speaker, d: -1 });
     // Staying quiet lets you catch your breath.
     for (const id of c.members) if (intents.get(id)!.urgency === 0) fx.energy.push({ id, d: 1 });
@@ -52,6 +49,23 @@ export function runConvo(w: World, members: number[], onlookers: number[], momen
     play(w, c, speaker, intent.key, intent.target);
   }
   return c;
+}
+
+/**
+ * Who speaks: standing up to a put-down goes first; then jumping in beats saying something; then most
+ * Bond with the table; then Standing.
+ */
+export function nextSpeaker(w: World, c: Convo, wanting: number[], intents: ReadonlyMap<number, Intent>): number {
+  const answers = (id: number) => c.plays.at(-1)?.card === 'putdown' && intents.get(id)?.key === 'standup';
+  const table = (id: number) => c.members.reduce((t, o) => (o === id ? t : t + bond(w, id, o)), 0);
+  const urgency = (id: number) => intents.get(id)?.urgency ?? 0;
+  return wanting.reduce((a, b) => {
+    if (answers(a) !== answers(b)) return answers(a) ? a : b;
+    if (urgency(a) !== urgency(b)) return urgency(a) > urgency(b) ? a : b;
+    if (table(a) !== table(b)) return table(a) > table(b) ? a : b;
+    if (w.standing[a] !== w.standing[b]) return w.standing[a] > w.standing[b] ? a : b;
+    return w.rng.chance(0.5) ? a : b;
+  });
 }
 
 /** Play one card: pay for it, use up a copy, and apply what it does. */
@@ -64,6 +78,7 @@ export function play(w: World, c: Convo, me: number, key: string, target: number
   const person = w.people[me];
   person.energy -= costOf(ctx, key, target);
   person.used.set(key, (person.used.get(key) ?? 0) + 1);
+  if (base === 'openup') person.openUpsThisWeek++;
   count(w, `card:${base}`);
   const p: Play = { card: base, actor: me, target };
   if (base === 'opinion') [p.topic, p.stance] = arg.split(':').map(Number);
@@ -72,16 +87,11 @@ export function play(w: World, c: Convo, me: number, key: string, target: number
     p.stance = base === 'push' ? Math.sign(person.opinions[last.topic!]) : last.stance;
   }
   if (base === 'talk') p.interest = arg as never;
-  if (base === 'story' || base === 'callout') p.storyId = Number(arg);
+  if (base === 'story') p.storyId = Number(arg);
   if (base === 'rumor') {
     // The rumor is about someone who isn't here: tellStory does all its effects.
     c.plays.push({ ...p, target: Number(arg) });
     afterPlay(w, c, { ...p, target: Number(arg) });
-    return;
-  }
-  if (base === 'putdown') {
-    resolvePutdown(w, c, me, target);
-    c.plays.push(p);
     return;
   }
   if (base === 'story') {
@@ -95,6 +105,9 @@ export function play(w: World, c: Convo, me: number, key: string, target: number
   p.success = outcome.success;
   // Closeness needs privacy: deep cards only count as deep in an intimate setting.
   if (!intimate(w, c)) for (const e of outcome.fx.bond) e.deep = false;
+  else if (base === 'openup' && target >= 0 && bond(w, me, target) >= LEVEL.friendly) w.openedUp[me * w.n + target] = 1;
+  // Going out with someone counts as both of you opening up.
+  if (base === 'askout' && outcome.success) w.openedUp[me * w.n + target] = w.openedUp[target * w.n + me] = 1;
   applyEffects(w, outcome.fx, me, c.members);
   c.plays.push(p);
   afterPlay(w, c, p);
@@ -149,16 +162,38 @@ function afterPlay(w: World, c: Convo, p: Play) {
   if (p.card === 'askout' && p.success) {
     w.people[me].partner = p.target;
     w.people[p.target].partner = me;
+    w.romances.push({ a: me, b: p.target, start: w.day, end: -1 });
     spread(w, c, newStory(w, 'couple', me, p.target, true, false));
     count(w, 'couples');
   }
-  if (p.card === 'askout' && !p.success) count(w, 'askoutRefused');
-  if (p.card === 'breakup') endCouple(w, me, c);
-  if (p.card === 'callout') {
-    pushedBack(w, p.target, me);
-    count(w, 'callouts');
+  if (p.card === 'askout' && !p.success) {
+    // Being turned down is a story — embarrassing for the one who asked.
+    const s = newStory(w, 'turneddown', me, p.target, true, false);
+    s.embarrassing = true;
+    spread(w, c, s);
+    count(w, 'askoutRefused');
   }
-  if (def.kind === 'deep' && p.target >= 0 && w.people[me].partner === p.target) w.week.coupleTime.set(me, (w.week.coupleTime.get(me) ?? 0) + 1);
+  if (p.card === 'breakup') endCouple(w, me, c);
+  if (p.card === 'putdown') {
+    spread(w, c, newStory(w, 'putdown', me, p.target, true, true));
+    w.putdowns.push({ day: w.day, bully: me, target: p.target, bullyStanding: w.standing[me], intervened: false, stopped: false });
+    // A teacher in the room: 1 in 3, it's reported, and the bully's mean cards cost more for a week.
+    if (c.teacher && w.rng.chance(1 / 3)) {
+      w.people[me].meanCostUntil = w.day + 7;
+      count(w, 'reported');
+    }
+  }
+  if (p.card === 'standup') {
+    count(w, 'standUps');
+    if (p.success) count(w, 'standUpsWorked');
+    // For the report: someone other than the victim stepping in on a put-down they saw today.
+    const saw = [...w.putdowns].reverse().find((d) => d.day === w.day && d.bully === p.target && c.members.includes(d.target));
+    if (saw && saw.target !== me) {
+      saw.intervened = true;
+      saw.stopped ||= !!p.success;
+    }
+  }
+  if (p.target >= 0 && w.people[me].partner === p.target) w.week.coupleTime.set(me, (w.week.coupleTime.get(me) ?? 0) + 1);
 }
 
 export function endCouple(w: World, breaker: number, c: Convo | null) {
@@ -166,16 +201,12 @@ export function endCouple(w: World, breaker: number, c: Convo | null) {
   if (partner < 0) return;
   w.people[breaker].partner = -1;
   w.people[partner].partner = -1;
+  const r = w.romances.find((x) => x.end < 0 && ((x.a === breaker && x.b === partner) || (x.a === partner && x.b === breaker)));
+  if (r) r.end = w.day;
   const s = newStory(w, 'breakup', breaker, partner, true, false);
   if (c) spread(w, c, s);
   else for (const id of [breaker, partner]) w.people[id].stories.add(s.id);
   count(w, 'breakups');
-}
-
-function pushedBack(w: World, target: number, by: number) {
-  const set = w.week.pushback.get(target) ?? new Set<number>();
-  set.add(by);
-  w.week.pushback.set(target, set);
 }
 
 export function newStory(w: World, kind: Story['kind'], actor: number, target: number, isTrue: boolean, mean: boolean): Story {
@@ -207,85 +238,11 @@ function tellStory(w: World, c: Convo, teller: number, storyId: number) {
     if (verdict === 'false') lies.push(l);
   }
   if (lies.length) {
+    s.foundOut = true;
     const lied = newStory(w, 'lied', teller, s.actor, true, true);
     for (const l of lies) w.people[l].stories.add(lied.id);
     count(w, 'liesFoundOut');
   }
   w.people[teller].gossipThisWeek++;
   count(w, 'storiesTold');
-}
-
-/**
- * A put-down, settled in the room (§6, §8 rule 6). The target picks a reply from the ones their energy
- * allows; bystanders choose a side (laugh along with the bully, don't laugh, or stand up for the
- * target); then the reply, and the sides, decide who wins.
- */
-function resolvePutdown(w: World, c: Convo, bully: number, target: number) {
-  const t = w.people[target];
-  // The target's reply: drained, you have fewer calm options.
-  const goodCount = t.energy >= 6 ? 3 : t.energy >= 3 ? 2 : t.energy >= 1 ? 1 : 0;
-  const goods = ['bait', 'joke', 'walk'].slice(0, goodCount);
-  const reply = goods.includes('joke') && t.abilities.humor >= 4 ? 'joke' : goods.includes('bait') ? 'bait' : goods.includes('joke') && t.abilities.humor >= 3 ? 'joke' : goods.includes('walk') ? 'walk' : t.personality.A === -1 ? 'snap' : 'explain';
-  // Bystanders choose a side, with the cards they hold.
-  const bystanders = c.members.filter((m) => m !== bully && m !== target);
-  const laughers: number[] = [];
-  const dontLaugh: number[] = [];
-  const standUps: number[] = [];
-  for (const b of bystanders) {
-    const p = w.people[b];
-    const own = collection(w, b);
-    const forTarget = bond(w, b, target);
-    if (forTarget >= LEVEL.friends && p.energy >= 3 && usesLeft(w, b, own, 'standup') > 0 && w.rng.chance(p.personality.A === 1 ? 0.7 : 0.5)) {
-      standUps.push(b);
-      p.energy -= 3;
-      p.used.set('standup', (p.used.get('standup') ?? 0) + 1);
-    } else if ((forTarget >= LEVEL.friendly || p.personality.A === 1) && usesLeft(w, b, own, 'dontlaugh') > 0 && w.rng.chance(0.6)) {
-      dontLaugh.push(b);
-      p.used.set('dontlaugh', (p.used.get('dontlaugh') ?? 0) + 1);
-    } else if ((bond(w, b, bully) >= LEVEL.friendly || (p.personality.statusDrive === 2 && w.standing[bully] > w.standing[b])) && w.rng.chance(0.5)) {
-      laughers.push(b);
-    }
-  }
-  const friendsHere = (who: number, exclude: number) => bystanders.filter((b) => b !== exclude && bond(w, b, who) >= LEVEL.friends).length;
-  const bullySide = w.standing[bully] + laughers.length + friendsHere(bully, target);
-  const targetSide = w.standing[target] + dontLaugh.length + 2 * standUps.length + friendsHere(target, bully);
-  // The reply decides it; more people standing with the target can still turn the room.
-  let winner: 'bully' | 'target' | 'draw';
-  if (reply === 'bait') winner = w.standing[bully] >= w.standing[target] + 2 ? (targetSide > bullySide ? 'target' : 'bully') : 'target';
-  else if (reply === 'joke') winner = w.rng.chance(t.abilities.humor / 6) ? 'target' : targetSide > bullySide ? 'target' : 'bully';
-  else if (reply === 'walk') winner = targetSide > bullySide ? 'target' : 'draw';
-  else winner = targetSide > bullySide ? 'target' : 'bully';
-
-  const fx: Effects = noEffects();
-  fx.bond.push({ a: bully, b: target, d: -3 });
-  fx.energy.push({ id: target, d: t.personality.N === 1 ? -3 : t.personality.N === -1 ? 0 : -2 });
-  const watchers = bystanders.concat(c.onlookers);
-  if (winner === 'bully') for (const l of watchers) fx.respect.push({ from: l, to: bully, d: 1 });
-  if (winner === 'target') for (const l of watchers) fx.respect.push({ from: l, to: bully, d: -1 });
-  if (reply === 'joke' && winner === 'target') for (const l of bystanders) fx.bond.push({ a: target, b: l, d: 1 });
-  if (reply === 'snap') for (const l of bystanders) fx.bond.push({ a: target, b: l, d: -1 });
-  applyEffects(w, fx, bully, c.members);
-  const side = noEffects();
-  for (const s of standUps) {
-    side.bond.push({ a: s, b: target, d: 3, deep: true }, { a: s, b: bully, d: -2 });
-    for (const l of watchers) if (l !== s) side.respect.push({ from: l, to: s, d: winner === 'target' ? 1 : -1 });
-    side.energy.push({ id: target, d: 2 });
-    pushedBack(w, bully, s);
-  }
-  for (const d of dontLaugh) {
-    side.bond.push({ a: d, b: target, d: 1 });
-    pushedBack(w, bully, d);
-  }
-  for (const l of laughers) side.bond.push({ a: l, b: bully, d: 1 });
-  applyEffects(w, side, -1, c.members);
-  // A teacher in the room: 1 in 3, it's reported — and the bully's mean cards cost more for a week.
-  if (c.teacher && w.rng.chance(1 / 3)) {
-    w.people[bully].meanCostUntil = w.day + 7;
-    count(w, 'reported');
-  }
-  spread(w, c, newStory(w, 'putdown', bully, target, true, true));
-  w.putdowns.push({ day: w.day, bully, target, bullyStanding: w.standing[bully], won: winner === 'bully' });
-  count(w, `putdown:${winner}`);
-  count(w, 'standUps', standUps.length);
-  count(w, 'dontLaugh', dontLaugh.length);
 }

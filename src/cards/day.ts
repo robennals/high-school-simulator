@@ -9,7 +9,7 @@ import { newStory, runConvo } from './convo';
 import { ENERGY_WAKE, ENERGY_WAKE_PHONE, ENERGY_WAKE_RESTED, LEVEL, MOMENTS } from './rules';
 import { weekly } from './school';
 import type { World } from './types';
-import { PERIODS, applyEffects, bond, count, friendsOf, noEffects } from './world';
+import { PERIODS, applyEffects, bond, count, friendsOf, noEffects, together } from './world';
 
 export function runDay(w: World) {
   const dow = w.day % 7;
@@ -39,8 +39,9 @@ export function runSemester(w: World, weeks: number) {
 // ---------------------------------------------------------------- who ends up with whom
 
 /**
- * People arrive in random order and go to the table (or spot) they like best: the most Bond with the
- * people already there, people who dress like them, and anyone whose shirt draws them. Rule: people who
+ * People arrive in random order. If there's room where one of their Friends is, they go there;
+ * otherwise to the table (or spot) they like best: the most Bond with the people already there, people
+ * who dress like them, and anyone whose shirt draws them. Rule: people who
  * are Cool with you won't make room; a table of strangers may leave you out.
  */
 function seat(w: World, spots: number, cap: number, aloneOk: boolean): number[][] {
@@ -64,6 +65,9 @@ function seat(w: World, spots: number, cap: number, aloneOk: boolean): number[][
     // Only one empty spot counts as "on your own" (otherwise empty spots outvote every group).
     const firstEmpty = tables.findIndex((t) => !t.length);
     tables.forEach((t, i) => !t.length && i !== firstEmpty && (scores[i] = -Infinity));
+    // You go where your Friends are, if there's room.
+    const withFriend = tables.map((t) => t.length < cap && t.some((o) => bond(w, id, o) >= LEVEL.friends));
+    if (withFriend.some(Boolean)) tables.forEach((_, i) => !withFriend[i] && (scores[i] = -Infinity));
     let placed = false;
     for (let tries = 0; tries < 2 && !placed; tries++) {
       const max = Math.max(...scores);
@@ -79,7 +83,7 @@ function seat(w: World, spots: number, cap: number, aloneOk: boolean): number[][
   return tables.filter((t) => t.length);
 }
 
-/** Whether a table makes room for `joiner`: not if anyone there is Cool with them; strangers may leave them out. */
+/** Whether a table makes room for `joiner`: not if anyone there is Cool with them; strangers may leave them out (1 in 10, with an edgy, status-hungry member above them). */
 function makesRoom(w: World, table: number[], joiner: number): boolean {
   if (table.some((o) => bond(w, o, joiner) <= -2)) return false;
   if (table.some((o) => bond(w, o, joiner) >= LEVEL.acquaintances)) return true;
@@ -88,7 +92,7 @@ function makesRoom(w: World, table: number[], joiner: number): boolean {
     const p = w.people[o].personality;
     return p.A === -1 && p.statusDrive === 2 && w.standing[joiner] < w.standing[o];
   });
-  if (gatekeeper === undefined || !w.rng.chance(0.5)) return true;
+  if (gatekeeper === undefined || !w.rng.chance(0.1)) return true;
   const fx = noEffects();
   fx.bond.push({ a: gatekeeper, b: joiner, d: -2 });
   fx.energy.push({ id: joiner, d: -1 });
@@ -114,6 +118,7 @@ function hallway(w: World) {
 function lunch(w: World) {
   for (const table of seat(w, Math.ceil(w.n / 7), 8, false)) {
     if (table.length === 1) count(w, 'aloneAtLunch');
+    together(w, table); // the whole table counts as time together, not just your half of it
     for (const group of conversations(table)) if (group.length >= 2) runConvo(w, group, table.filter((x) => !group.includes(x)), MOMENTS.lunch);
   }
 }

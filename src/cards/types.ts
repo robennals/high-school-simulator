@@ -60,6 +60,8 @@ export interface Person {
   stories: Set<number>;
   /** Stories they've told this week (too many and people stop believing them). */
   gossipThisWeek: number;
+  /** How many times they've opened up this week (rule: OPEN_UPS_PER_WEEK). */
+  openUpsThisWeek: number;
   /** Favors owed to them: debtor id → day it's forgotten. */
   favors: Map<number, number>;
   /** How many times each card has been used today (by card key). */
@@ -72,7 +74,7 @@ export interface Person {
   phoneNights: number;
   /** The last day they made up a rumor (at most one a week). */
   lastRumor: number;
-  /** Until this day, their mean cards cost 1 more (standing together). */
+  /** Until this day, their mean cards cost 1 more (reported by a teacher). */
   meanCostUntil: number;
   /** Whether they'd ever ask someone out. */
   romantic: boolean;
@@ -84,15 +86,21 @@ export interface Person {
  */
 export interface Story {
   id: number;
-  kind: 'putdown' | 'leaveout' | 'couple' | 'breakup' | 'callout' | 'rumor' | 'lied';
+  kind: 'putdown' | 'leaveout' | 'couple' | 'breakup' | 'rumor' | 'lied' | 'turneddown';
   actor: number;
   target: number;
   day: number;
   true: boolean;
   /** Whether hearing it (and believing it) lowers Respect for the actor. */
   mean: boolean;
+  /** Embarrassing for the person it's about (being turned down): believers respect them a little less. */
+  embarrassing?: boolean;
   /** For a rumor: who made it up. */
   madeUpBy?: number;
+  /** For a rumor: someone has found out it's a lie (the record gets set straight on Sunday). */
+  foundOut?: boolean;
+  /** For a rumor: the record has been set straight. */
+  corrected?: boolean;
 }
 
 export interface World {
@@ -117,14 +125,20 @@ export interface World {
   week: WeekTrackers;
   /** Things that happened, counted, for the realism report. */
   tally: Map<string, number>;
-  /** Put-downs, for the realism report: who, at what standing, and how it went. */
-  putdowns: { day: number; bully: number; target: number; bullyStanding: number; won: boolean }[];
+  /** Put-downs, for the realism report: who, at what standing, and whether someone stepped in and stopped it. */
+  putdowns: { day: number; bully: number; target: number; bullyStanding: number; intervened: boolean; stopped: boolean }[];
+  /** Couples, for the realism report: who, when they got together, and when they broke up (−1 if still together). */
+  romances: { a: number; b: number; start: number; end: number }[];
   /** Which class section each person is in, per period. */
   sections: Int16Array[];
+  /** Friend pairs (Bond 8+) at the end of week 4, for measuring how many friendships last. */
+  friendsWeek4?: Uint8Array;
   /** Weekly standing snapshots (for stability). */
   standingHistory: Int8Array[];
   /** Whether a knows something b loves (a*n+b): b talked about it, wore it, or told a. */
   knows: Uint8Array;
+  /** openedUp[a * n + b]: a has opened up to b in an intimate moment (the both-ways rule needs it). */
+  openedUp: Uint8Array;
   /** What each listener heard each speaker say about each topic: ((listener*n+speaker)*topics+topic) → stance. */
   claims: Map<number, number>;
   /** Invitations accepted today: pairs who'll hang out after school. */
@@ -134,8 +148,6 @@ export interface World {
 export interface WeekTrackers {
   /** Warm cards from a to b this week, at a*n+b. */
   warm: Uint8Array;
-  /** Who pushed back on each person this week: target → set of people. */
-  pushback: Map<number, Set<number>>;
   /** Deep cards or hangouts between couples this week: person → count. */
   coupleTime: Map<number, number>;
 }
