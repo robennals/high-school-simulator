@@ -481,3 +481,28 @@ Each item lists the choice made and the alternative rejected, for review.
     out creates a true story that the teller lied; true stories alone can be
     used to Call out; hearing a rumor was a lie restores the subject's
     Respect. One story a day per person; rumors at most once a week.
+89. **Bullying is two cards and gossip** (Rob: "a simple mechanic"; "it
+    seems to work for me short term but also realize not to do it"). A
+    put-down always lands: the victim likes the bully much less, the bully's
+    Friends a little more. Standing up works by who is more liked by the
+    people present. Gossip makes non-Friends like and respect the bully less,
+    and rewards the teller. Rob proposed "like less"; respect was added
+    because with liking alone bullies gained Standing over a semester.
+    Rejected: reply cards, bystander roles, a pile-on rule, a delayed fear
+    penalty (too many rules), and popularity losing a point per person who
+    dislikes you (erased any short-term gain).
+90. **Popularity is friends plus respect** (Rob: "shouldn't it just be a
+    combination of friends and respect?"): 10 for each Friend, 1 for each
+    person with Respect 3+ for you. Rejected: Respect weighted by the giver's
+    Standing (no link to friends, harder to explain) and summing all Bond and
+    Respect (barely linked to friends).
+91. **False gossip is a choice that usually backfires; true gossip starts
+    with an event** (Rob). Being turned down is a story. Anyone Friendly with
+    a rumor's subject sees through it, and on Sunday a found-out rumor is
+    corrected for everyone who heard it.
+92. **Friendship tuning** against research targets: one Open up a week, both
+    must open up to become Friends, time together is a shared conversation or
+    lunch table, Friends need depth every four weeks, you sit with Friends,
+    and talking over only annoys Acquaintances. Rejected: daily Open up
+    (8–10 friends each) and the old talk-over rule (each student disliked
+    about half the people they'd met).
