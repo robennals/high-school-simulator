@@ -1,6 +1,6 @@
 # Proposal: everything is a card game
 
-**Status: proposal, not built.** Rob asked for "no mysterious multipliers…
+**Status: superseded by [the card rules spec](card-rules-spec.md).** Rob asked for "no mysterious multipliers…
 all social interactions happen by people playing cards… everything else you
 choose has effect in terms of cards". This is a design for that, for review.
 

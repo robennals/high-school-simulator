@@ -437,3 +437,90 @@ Each item lists the choice made and the alternative rejected, for review.
 84. **The opening hand is a plain random six** (Rob: "sometimes maybe you
     just don't have anything to say and it's awkward"). No guaranteed
     playable cards; a free **Stay quiet** lets you pass a turn.
+85. **The card rules spec** (`card-rules-spec.md`) replaces the earlier
+    proposal, with Rob's answers: Bond −5…15 (try it); fog of war over other
+    people's Bonds and over Respect (shown as of when you last saw them);
+    each moment whoever wants to speak most does (Stay quiet / Say something
+    / Jump in) instead of fixed turns; any story can be shared and every
+    listener gets a copy; Ask out only works if they like you enough and a
+    public no costs Respect; other students' personalities are random and
+    hidden, and their picks have randomness. Recommended and written in, for
+    review: no hand — you can use any card you own, each copy once a day, so
+    gaining a card never makes your other cards harder to reach.
+86. **Respect for you is visible; one Energy meter; breaking up** (Rob:
+    "people's respect for you should be visible… what you can't see is
+    their respect for each other"; "do we need both energy and nerve?";
+    "breaking up should be a thing"). Respect for you is always shown; other
+    people's Respect for each other is under the fog of war. Energy and
+    Nerve merge into one 0–12 meter: bold cards cost more, success refunds
+    some, failure costs extra. Going out gives +1⚡ a morning and backup in
+    put-downs but needs weekly upkeep; Break up is a card (played by you, or
+    on you when the Bond drops below 8) that costs Bond with them and their
+    friends; asking out someone else while going out is two-timing.
+    Rejected: keeping Nerve as a second meter (realistic but doubles what
+    you track, and the two mostly move together).
+87. **No two-timing; pushing back against meanness; simulator first** (Rob:
+    "don't allow two-timing at all"; "do we still have ways to use gossip to
+    gang up on someone who has been using mean dominance to gain status?";
+    "do we think the card game rules approach is going to adequately
+    simulate real social outcomes?"). Ask out can't be played while going
+    out. New cards Call out (needs a true story of a mean act) and Don't
+    laugh, and a Standing together rule: three or more people pushing back
+    in a week drop the person a Standing step — research on dominance finds
+    coalitions and reputation, not lone defenders, are what check it. The
+    card rules get a headless simulator and must pass the realism and
+    strategy checks before the game screens change.
+88. **Gossip and rumors** (Rob: "you only get a gossip card if you were at
+    the place where it happened"; "spreading gossip about someone can harm
+    you if you spread it to their friend"; "try your rules for false
+    gossip"; "false gossip should behave differently to true gossip").
+    People believe whoever they're closer to: a listener closer to the
+    story's subject than to the teller sides with their friend (teller −1
+    Bond). Rumors are made-up stories about an Enemy: the subject and their
+    Friends know they're false and turn on whoever tells them; finding one
+    out creates a true story that the teller lied; true stories alone can be
+    used to Call out; hearing a rumor was a lie restores the subject's
+    Respect. One story a day per person; rumors at most once a week.
+89. **Bullying is two cards and gossip** (Rob: "a simple mechanic"; "it
+    seems to work for me short term but also realize not to do it"). A
+    put-down always lands: the victim likes the bully much less, the bully's
+    Friends a little more. Standing up works by who is more liked by the
+    people present. Gossip makes non-Friends like and respect the bully less,
+    and rewards the teller. Rob proposed "like less"; respect was added
+    because with liking alone bullies gained Standing over a semester.
+    Rejected: reply cards, bystander roles, a pile-on rule, a delayed fear
+    penalty (too many rules), and popularity losing a point per person who
+    dislikes you (erased any short-term gain).
+90. **Popularity is friends plus respect** (Rob: "shouldn't it just be a
+    combination of friends and respect?"): 10 for each Friend, 1 for each
+    person with Respect 3+ for you. Rejected: Respect weighted by the giver's
+    Standing (no link to friends, harder to explain) and summing all Bond and
+    Respect (barely linked to friends).
+91. **False gossip is a choice that usually backfires; true gossip starts
+    with an event** (Rob). Being turned down is a story. Anyone Friendly with
+    a rumor's subject sees through it, and on Sunday a found-out rumor is
+    corrected for everyone who heard it.
+92. **Friendship tuning** against research targets: one Open up a week, both
+    must open up to become Friends, time together is a shared conversation or
+    lunch table, Friends need depth every four weeks, you sit with Friends,
+    and talking over only annoys Acquaintances. Rejected: daily Open up
+    (8–10 friends each) and the old talk-over rule (each student disliked
+    about half the people they'd met).
+93. **Bullying pays at once and costs later** (Rob: "bullying should give
+    immediate respect (except from friends of the attacked) but cost later";
+    "friends of the victim won't always stand up for the victim, but their
+    like/respect numbers won't go up"). Watchers give 2 Respect at once;
+    word takes 7 days to get around. Rejected: gossip from the first day (the
+    win was gone by bedtime) and 1 Respect (too small to notice). The other
+    students mostly see through the lure, or 97% of students got bullied.
+94. **17 cards, many phrases** (Rob: "simplify - but still have multiple
+    phrases that can be shown for each one - chosen contextually"). Respond
+    warmly replaces nine responses. Rejected: a card per way of responding.
+95. **Conversations take turns:** whoever was spoken to answers first, and
+    nobody goes twice in a row while someone else wants to. Rejected: the
+    most-liked speaker winning every tie, which made monologues.
+96. **Every line follows on** (Rob, on a question, an ill-fitting answer and
+    a random tease in a row: "this feels like a non-sequitur"). A line is a
+    lead plus a move, the subject lasts a whole exchange, responses don't ask
+    questions, and whoever is spoken to answers. Rejected: more or better
+    phrases alone, which can't fix a question nobody has a turn to answer.
