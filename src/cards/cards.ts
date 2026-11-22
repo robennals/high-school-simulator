@@ -45,6 +45,15 @@ export interface CardDef {
   outcomes(ctx: Ctx, target: number, arg: string): Outcome[];
 }
 
+/** Cards said to someone who should answer them. */
+export const CALLS_FOR_ANSWER: ReadonlySet<string> = new Set(['ask', 'compliment', 'help', 'openup', 'tease']);
+
+/** What's being talked about: the last thing said that wasn't just a response. */
+export function subjectOf(plays: readonly Play[]): Play | undefined {
+  for (let i = plays.length - 1; i >= 0; i--) if (plays[i].card !== 'respond') return plays[i];
+  return undefined;
+}
+
 // ---------------------------------------------------------------- helpers
 
 const others = (ctx: Ctx) => ctx.c.members.filter((m) => m !== ctx.me);

@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { CARDS, collection, costOf, hearing, standUpOdds, usesLeft, type Ctx } from '../cards';
 import { intimate, nextSpeaker, play, runConvo } from '../convo';
+import { choose } from '../policy';
 import { runSemester } from '../day';
 import { LEVEL, OPEN_UPS_PER_WEEK } from '../rules';
+import { phrase, transcript } from '../lines';
 import { recomputeStanding, weekly } from '../school';
-import type { Convo } from '../types';
+import type { Convo, Play } from '../types';
 import { applyEffects, bond, createWorld, noEffects } from '../world';
 
 /** A small school with no prior friendships, so every Bond starts at 0. */
@@ -294,6 +296,138 @@ describe('bullying', () => {
     play(w, c, 1, 'story:0', -1);
     expect(bond(w, 0, 5)).toBe(-1); // not doubled
     expect(w.met[5]).toBe(0);
+  });
+});
+
+describe('what people say', () => {
+  it('has words for every card', () => {
+    const w = school();
+    w.stories.push({ id: 0, kind: 'putdown', actor: 4, target: 5, day: 0, true: true, mean: true });
+    const extra: Record<string, Partial<Play>> = {
+      talk: { target: -1, interest: 'anime' },
+      opinion: { target: -1, topic: 4, stance: 1 },
+      help: { ability: 'tech' },
+      brag: { target: -1, ability: 'arts' },
+      joke: { target: -1 },
+      story: { target: -1, storyId: 0 },
+    };
+    for (const card of Object.keys(CARDS)) {
+      const before: Play[] = card === 'respond' ? [{ card: 'compliment', actor: 1, target: 0 }] : [];
+      const said = phrase(w, convo([0, 1, 2]), before, [], { card, actor: 0, target: 1, ...extra[card] });
+      expect(said.text, card).toMatch(/^[^{}]+$/);
+    }
+  });
+
+  it('answers the question that was asked', () => {
+    const w = school();
+    w.people[1].shirt = { style: 'plain', topic: null };
+    const c = convo([0, 1]);
+    play(w, c, 0, 'ask', 1);
+    play(w, c, 1, 'respond', 0);
+    const [question, answer] = transcript(w, c);
+    expect(question.text).toMatch(/\?$/);
+    expect(answer.template).not.toMatch(/^(Yeah, pretty much|Ha, yeah. Kind of|I think so, yeah)/);
+  });
+
+  it('ends a heart-to-heart after three beats', () => {
+    const w = school();
+    set(w, 0, 1, 5);
+    const c = convo([0, 1]);
+    play(w, c, 0, 'openup', 1);
+    play(w, c, 1, 'respond', 0);
+    expect(CARDS.respond.targets({ w, c, me: 0, last: c.plays[1] }, '')).toEqual([1]);
+    play(w, c, 0, 'respond', 1);
+    expect(CARDS.respond.targets({ w, c, me: 1, last: c.plays[2] }, '')).toEqual([]);
+  });
+
+  it('has real conversations with no holes or repeats, without rolling the dice', () => {
+    const w = createWorld({ students: 60, seed: 4 });
+    runSemester(w, 3);
+    for (let i = 0; i < 80; i++) {
+      for (const p of w.people) p.energy = 10;
+      const c = runConvo(w, w.rng.shuffle(w.people.map((p) => p.id)).slice(0, 4), [], 10);
+      const peek = () => JSON.stringify(w.rng);
+      const dice = peek();
+      const lines = transcript(w, c);
+      expect(peek()).toBe(dice);
+      for (const [j, line] of lines.entries()) {
+        expect(line.text).not.toMatch(/[{}]|undefined|\bthe the\b/i);
+        if (j) expect(line.text).not.toBe(lines[j - 1].text);
+      }
+    }
+  });
+});
+
+describe('conversations follow on', () => {
+  /** Two people who like each other, with nothing on their shirts to change the subject. */
+  function pair(seed: number) {
+    const w = school(12, seed);
+    set(w, 0, 1, 5);
+    for (const p of w.people) p.shirt = { style: 'plain', topic: null };
+    return { w, c: convo([0, 1]) };
+  }
+
+  it('keeps to soccer: talk, a reply that closes, then a tease about it', () => {
+    for (let seed = 1; seed <= 12; seed++) {
+      const { w, c } = pair(seed);
+      w.day = seed; // a different line each time
+      play(w, c, 0, 'talk:soccer', -1);
+      play(w, c, 1, 'respond', 0);
+      play(w, c, 0, 'tease', 1);
+      const [opener, reply, tease] = transcript(w, c);
+      expect(opener.text).not.toContain('?'); // nothing the reply could fail to answer
+      expect(reply.text).not.toContain('?'); // nobody gets a turn to answer it
+      expect(tease.text).toMatch(/soccer/i);
+    }
+  });
+
+  it('answers a question first, whatever card is played next', () => {
+    for (const card of ['talk:anime', 'joke', 'tease']) {
+      const { w, c } = pair(3);
+      play(w, c, 0, 'ask', 1);
+      play(w, c, 1, card, card === 'tease' ? 0 : -1);
+      const line = transcript(w, c)[1];
+      // A joke can be the answer; anything else answers first, then says its piece.
+      if (card === 'joke') expect(line.text).toMatch(/classified|confirm nor deny|my lawyer/);
+      else expect(line.lead, card).toBeTruthy();
+    }
+  });
+
+  it('owns up to a change of subject', () => {
+    const { w, c } = pair(4);
+    play(w, c, 0, 'talk:soccer', -1);
+    play(w, c, 1, 'respond', 0);
+    play(w, c, 0, 'opinion:4:1', -1);
+    expect(transcript(w, c)[2].lead).toBeTruthy();
+  });
+
+  it('never leaves someone who was asked sitting silent', () => {
+    for (let seed = 1; seed <= 20; seed++) {
+      const { w, c } = pair(seed);
+      play(w, c, 0, 'ask', 1);
+      w.people[1].energy = 0;
+      w.people[1].personality.E = -1;
+      set(w, 0, 1, -4); // they'd rather not
+      expect(choose({ w, c, me: 1, last: c.plays[0] }, collection(w, 1)).urgency).toBeGreaterThan(0);
+    }
+  });
+
+  it('gives whoever was asked or offered help the next word, in real conversations', () => {
+    const w = createWorld({ students: 60, seed: 8 });
+    runSemester(w, 3);
+    for (let i = 0; i < 100; i++) {
+      for (const p of w.people) {
+        p.energy = 10;
+        p.used.clear();
+      }
+      const c = runConvo(w, w.rng.shuffle(w.people.map((p) => p.id)).slice(0, 4), [], 10);
+      const lines = transcript(w, c);
+      for (const [j, play] of c.plays.entries()) {
+        if (play.card === 'respond') expect(lines[j].text).not.toContain('?');
+        const next = c.plays[j + 1];
+        if (next && (play.card === 'ask' || play.card === 'help')) expect(next.actor, lines[j].text).toBe(play.target);
+      }
+    }
   });
 });
 

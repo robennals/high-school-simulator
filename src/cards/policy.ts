@@ -10,7 +10,7 @@
  * - energy (more when they're running low);
  * - avoiding risk (more if Sensitive).
  */
-import { CARDS, costOf, usesLeft, type Ctx, type Outcome } from './cards';
+import { CALLS_FOR_ANSWER, CARDS, costOf, subjectOf, usesLeft, type Ctx, type Outcome } from './cards';
 import { ASK_OUT_BOND, BOND_MAX, CASUAL_CAP, CLOSE_FADE_AFTER_DAYS, FRIEND_FADE_AFTER_DAYS, LEVEL } from './rules';
 import type { Person } from './types';
 import { bond, type Effects } from './world';
@@ -90,6 +90,21 @@ export function utility(ctx: Ctx, me: Person, fx: Effects): number {
   return u;
 }
 
+/** People mostly stay on the subject, and don't answer someone opening up with gossip or a joke. */
+function onSubject(ctx: Ctx, key: string, target: number): number {
+  const subject = subjectOf(ctx.c.plays);
+  if (!subject) return 0;
+  const [base, arg] = key.split(':');
+  if (subject.card === 'openup') {
+    if (base === 'ask' || base === 'compliment') return target === subject.actor ? 0.5 : 0;
+    return ['talk', 'opinion', 'joke', 'brag', 'story', 'rumor', 'tease', 'help'].includes(base) ? -1 : 0;
+  }
+  if (base === 'talk') return subject.card === 'talk' && subject.interest === arg ? 0.5 : 0;
+  if (base === 'opinion') return subject.card === 'opinion' && subject.topic === Number(arg) ? 0.5 : 0;
+  if (base === 'ask') return target === subject.actor && ['talk', 'opinion', 'brag', 'story'].includes(subject.card) ? 0.3 : 0;
+  return 0;
+}
+
 /** A small nudge toward the cards their personality favors. */
 function bias(me: Person, key: string, ctx: Ctx, target: number, outcomes: Outcome[]): number {
   const base = key.split(':')[0];
@@ -98,6 +113,7 @@ function bias(me: Person, key: string, ctx: Ctx, target: number, outcomes: Outco
   let b = 0;
   // Answering what was said comes naturally, and more so when it was said to you.
   if (def.kind === 'response') b += ctx.last?.target === me.id ? 2 : 0.8;
+  b += onSubject(ctx, key, target);
   if (T.E === 1 && (def.aim === 'table' || base === 'joke')) b += 0.2;
   if (T.A === 1 && ['respond', 'compliment', 'ask'].includes(base)) b += 0.25;
   if (T.A === 1 && def.kind === 'attack') b -= 0.5;
@@ -163,7 +179,9 @@ export function choose(ctx: Ctx, owned: Map<string, number>): Intent {
   // Stay quiet, say it, or jump in — outgoing people speak up more readily.
   const quietBar = me.personality.E === 1 ? -0.2 : me.personality.E === -1 ? 0.45 : 0.15;
   const jumpBar = me.personality.E === 1 ? 0.9 : me.personality.E === -1 ? 2 : 1.4;
-  if (best.score < quietBar) return { ...best, urgency: 0 };
+  // When you're spoken to, you answer, even if you'd rather not.
+  const spokenTo = ctx.last?.target === ctx.me && CALLS_FOR_ANSWER.has(ctx.last.card) && best.key !== '';
+  if (best.score < quietBar && !spokenTo) return { ...best, urgency: 0 };
   if (best.score > jumpBar && me.energy >= best.cost + 1) return { ...best, urgency: 2 };
   return best;
 }

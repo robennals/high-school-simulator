@@ -3,7 +3,7 @@
  * something, or jump in; whoever wants to speak most does, and plays one card.
  */
 import type { Ability } from '../sim/content';
-import { CARDS, collection, costOf, freshStory, hearing, usesLeft, type Ctx } from './cards';
+import { CALLS_FOR_ANSWER, CARDS, collection, costOf, freshStory, hearing, usesLeft, type Ctx } from './cards';
 import { choose, type Intent } from './policy';
 import { FAVOR_DAYS, LEVEL } from './rules';
 import type { Convo, Play, Story, World } from './types';
@@ -50,9 +50,6 @@ export function runConvo(w: World, members: number[], onlookers: number[], momen
   }
   return c;
 }
-
-/** Cards said to someone that they'd naturally answer. */
-const CALLS_FOR_ANSWER = new Set(['ask', 'compliment', 'help', 'openup', 'tease']);
 
 /**
  * Who speaks, in order:
