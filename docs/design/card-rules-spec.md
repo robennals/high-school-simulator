@@ -6,7 +6,8 @@ game doesn't use these rules yet.** Replaces the earlier
 
 **Summary.** High School Simulator becomes one card game that you and all 199
 other students play by the same printed rules. Every social effect happens
-because someone played a card, and every card prints exactly what it does.
+because someone played a card, and every card prints exactly what it does
+(with one deliberate exception in conversation threads, §6).
 You and the others each have a few kinds of points (energy, standing,
 favors) that cards spend or create. Friendship is a single mutual **Bond**
 between two people. Because cards are played to a whole table, one card can
@@ -167,7 +168,7 @@ you choose whether to say something, and how hard to push to be heard.
   not enough ⚡).
 - **Aim:** a card is played *to one person* (→) or *to the table*. Effects are
   printed for each: the target, the table, onlookers.
-- **Respond warmly** can only be played right after something it can answer
+- **Respond** can only be played right after something it can answer
   (a joke that landed, a question to you). Because only one person speaks per
   moment, there's competition to respond: if three people want to respond
   to a joke, one gets the Bond.
@@ -189,8 +190,9 @@ effect · the line you say.
   the responses to it, so a tease after soccer talk is about soccer.
 - **The lead** answers what you were just asked, or acknowledges what was
   said and owns up to changing the subject ("Anyway, …").
-- **A response closes an exchange,** so responses never ask questions: nobody
-  would get a turn to answer.
+- **A response closes an exchange,** so outside a thread, responses never ask
+  questions: nobody would get a turn to answer. Inside a thread the owner
+  always answers next, so there they can.
 - **A line that needs a particular answer carries its replies** ("What
   classes do you have?" gets classes back).
 
@@ -212,7 +214,7 @@ as listeners for cards marked *public*.
 | **Offer help** | 1⚡ | → | Only someone two or more levels weaker at it: Bond +1, their Respect +1, they owe you a Favor 🪙. |
 | **Crack a joke** | 2⚡ | table | Lands on N in 6, N = your Humor (+1 if the table likes you). Lands: each listener Bond +1, and listeners who value funny Respect +1; +1⚡ back. Flops: each listener's Respect −1; −1⚡. |
 | **Brag (skill)** | 2⚡ | table | Listeners who value that skill: Respect +1. Everyone else: Bond −1. |
-| **Respond warmly** | 0 | → | Right after a hobby, opinion, brag, help, story, opening up, a joke that landed, or a question, compliment or friendly tease to you: Bond +1 with them. Answering someone opening up is **deep**, and they can answer back, deeply. Going along with an opinion counts as saying it: say the opposite later and whoever heard both, Bond −2. |
+| **Respond** | 0 | → | Right after a hobby, opinion, brag, help, story, opening up, a joke that landed, or a question, compliment or friendly tease to you: Bond +1 with them. Answering someone opening up is **deep**, and they can answer back, deeply. Going along with an opinion counts as saying it: say the opposite later and whoever heard both, Bond −2. In a thread, it's one of four lines instead (below). |
 
 ### Getting closer
 
@@ -222,6 +224,30 @@ as listeners for cards marked *public*.
 | **Invite to hang out** | 1⚡ | → | Always leaves them an out. Yes if Bond ≥ 4: after school together, privately. A no costs nothing more. |
 | **Ask out** | 3⚡ | → | A "yes" only if your Bond is 7+ and they aren't going out with anyone. You can't play it while you're going out with someone. Yes: you're going out (see Going out). No: Bond −1 (awkward), −2⚡, everyone watching Respect −1 for you, and it's an embarrassing story. |
 | **Break up** | 2⚡ | → (your partner) | You stop going out. Bond −4 with them; their Close friends Bond −1 with you; both of you −2⚡. |
+
+### Threads
+
+A thread is a canned conversation with one deep path and exits, and it's where
+friendships are made. Full design: [conversation threads](conversation-threads.md).
+
+- **Someone brings up something true of them** (Talk about a hobby, Open up, or
+  Get to know them, whose question starts it), and that starts their thread.
+- **At each of the friend's turns, Respond offers four lines:** go deeper, wrap
+  up kindly, or two believable misses (making it about you, advice nobody
+  asked for, cheering them up in a way that dismisses it, and so on).
+- **Going deeper pays more,** and the last two steps need Bond 3 and 7. Going
+  on without it is too soon: −1, and the owner deflects. Wrapping up: +1. A
+  miss: −1, or −2 after the deepest disclosure.
+- **The deep end uses each person's one Open up for the week,** so a whole
+  thread is how two people become Friends, but not more often than opening up
+  allows.
+- **The four lines don't say which is which.** The card prints these rules,
+  not which line goes deeper, and the lines are shown shuffled. Printing each
+  line's effect would give away the answer, and telling them apart is the
+  skill the game teaches. This is the one exception to every card printing
+  exactly what it does.
+- **The words are canned:** pre-written, reviewed and checked in. Nothing is
+  generated while the game runs.
 
 ### Gossip
 
@@ -309,7 +335,7 @@ is a **trait card** always in play.
 | Trait | Card | Effect |
 | --- | --- | --- |
 | Outgoing | *Life of the party* | Cards to the table cost 1⚡ less (min 0). |
-| Reserved | *Good listener* | Respond warmly gives +1 extra Bond. Cards to a table of 4+ cost 1⚡ more. |
+| Reserved | *Good listener* | Respond gives +1 extra Bond. Cards to a table of 4+ cost 1⚡ more. |
 | Warm | *Easy to like* | Your Compliment never counts as sucking up; Tease never costs Bond with Friendly people. |
 | Edgy | *Sharp* | Tease and Brag cost 1⚡ less. People with Standing below yours are wary (Bond starts −1). |
 | Organized | *On top of it* | Homework gives +1 extra grade step; one used-up card comes back each lunch. |
@@ -430,7 +456,7 @@ Rules everyone plays by, printed in How to Play.
     form a group; groups are shown on the map and in the Notebook.
 12. **Standing** is recomputed every Sunday (§3).
 13. **Trying too hard.** If in one week you play three or more warm cards
-    (Get to know them, Compliment, Respond warmly) at someone of higher Standing
+    (Get to know them, Compliment, Respond) at someone of higher Standing
     who plays none back at you, their Respect for you −1. Investing in people
     works when it's returned.
 14. **Seats.** If there's room where one of your Friends is, you sit there.
@@ -467,8 +493,9 @@ same rules. A simple policy picks their cards instead of a person, and it's
   put-down's quick win. The status-hungry (unless they're Warm) feel more of
   the pull, so bullying comes mostly from higher up the ladder.
 
-You always see *which card* someone played and its printed effect on you. You
-can't see their personality, their cards, or what they'll do next.
+You always see *which card* someone played and its printed effect on you
+(in a thread, the line they chose and how the owner reacted). You can't see
+their personality, their cards, or what they'll do next.
 
 ## 10. Why it takes strategy
 
@@ -577,6 +604,11 @@ screens only change once it passes.
 17. **17 cards, many phrases.** Variety is in what's said, not in card names.
 18. **Conversations take turns:** answer when spoken to, and nobody twice in
     a row while someone else wants to speak.
+19. **Threads are where friendships are made:** canned conversations with one
+    deep path and exits. Rejected: words-only threads (conversations stayed
+    two lines long) and a general dialogue graph (grows too fast to review).
+20. **In a thread, Respond hides which line is which.** The one exception to
+    printed effects, because telling them apart is the lesson.
 
 ## 13. Open questions
 
