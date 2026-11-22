@@ -519,3 +519,8 @@ Each item lists the choice made and the alternative rejected, for review.
 95. **Conversations take turns:** whoever was spoken to answers first, and
     nobody goes twice in a row while someone else wants to. Rejected: the
     most-liked speaker winning every tie, which made monologues.
+96. **Every line follows on** (Rob, on a question, an ill-fitting answer and
+    a random tease in a row: "this feels like a non-sequitur"). A line is a
+    lead plus a move, the subject lasts a whole exchange, responses don't ask
+    questions, and whoever is spoken to answers. Rejected: more or better
+    phrases alone, which can't fix a question nobody has a turn to answer.

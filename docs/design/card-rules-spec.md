@@ -156,6 +156,8 @@ you choose whether to say something, and how hard to push to be heard.
 - **Talking over someone:** if you Jump in over an Acquaintance (Bond 1–3)
   who also wanted to speak, your Bond with them −1. It's annoying, not a
   reason for dislike: it never takes a Bond below 0.
+- **Spoken to, you answer:** asked, offered help, complimented, teased or
+  opened up to, you don't stay quiet.
 - **If everyone stays quiet,** it's an awkward silence: each person −1 ⚡,
   and the conversation may end.
 - **Your cards: you can use any card you own, and each copy is used up until
@@ -181,11 +183,19 @@ picked from the moment.
 **Card anatomy.** Name · cost (⚡) · aim (→ one person, or table) · printed
 effect · the line you say.
 
-**Which line you say** depends on what was just said, by whom, about what,
-how close you two are, shirts, and whether it landed. A line that needs a
-particular answer carries its replies ("What classes do you have?" gets
-classes back). Lines don't repeat in a conversation until their pool runs
-out, and choosing words never rolls dice.
+**Every line follows on.** A line is an optional **lead** plus a **move**:
+
+- **The move** comes from the card and the subject. The subject lasts through
+  the responses to it, so a tease after soccer talk is about soccer.
+- **The lead** answers what you were just asked, or acknowledges what was
+  said and owns up to changing the subject ("Anyway, …").
+- **A response closes an exchange,** so responses never ask questions: nobody
+  would get a turn to answer.
+- **A line that needs a particular answer carries its replies** ("What
+  classes do you have?" gets classes back).
+
+Lines don't repeat in a conversation until their pool runs out, and choosing
+words never rolls dice.
 
 **Reading the effects.** "Bond +1 with target" means your mutual Bond with
 them. "Each listener" means everyone at the table except you. Onlookers count
@@ -444,6 +454,8 @@ same rules. A simple policy picks their cards instead of a person, and it's
   - **Bond with people they like** (everyone);
   - **Respect and Standing** (more if they care about status);
   - **Avoiding risk** (more if Sensitive);
+  - **The subject** (they mostly stay on it, and don't answer someone
+    opening up with gossip or a joke);
   - **Their traits** (Outgoing people favor table cards and Jumping in, Edgy
     people favor teasing and bragging, Warm people favor listening,
     Reserved people stay quiet more).
