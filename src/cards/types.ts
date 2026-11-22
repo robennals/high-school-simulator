@@ -1,6 +1,7 @@
 /** The card-rules simulation's data: people, the world, stories and conversations. */
 import type { Ability, Interest, Look, ShirtStyle } from '../sim/content';
 import type { Rng } from '../sim/rng';
+import type { Thread, ThreadMove, ThreadState } from './threads';
 
 /** A personality trait: one side (+1), the other side (−1), or the middle (0). */
 export type Side = -1 | 0 | 1;
@@ -137,6 +138,10 @@ export interface World {
   standingHistory: Int8Array[];
   /** Whether a knows something b loves (a*n+b): b talked about it, wore it, or told a. */
   knows: Uint8Array;
+  /** The canned threads this school uses. */
+  threads: readonly Thread[];
+  /** Threads two people have had: owner, friend, thread id. */
+  threadsHeard: Set<string>;
   /** openedUp[a * n + b]: a has opened up to b in an intimate moment (the both-ways rule needs it). */
   openedUp: Uint8Array;
   /** What each listener heard each speaker say about each topic: ((listener*n+speaker)*topics+topic) → stance. */
@@ -164,6 +169,8 @@ export interface Play {
   interest?: Interest;
   ability?: Ability;
   storyId?: number;
+  /** Its place in a thread, if it's in one. */
+  thread?: ThreadMove;
   /** For a response: the kind of card it answers. */
   answers?: string;
   /** For a response: it answers someone opening up, so they can answer back, deeply. */
@@ -180,4 +187,6 @@ export interface Convo {
   /** A teacher is in the room: attacks cost 2 more. */
   teacher: boolean;
   plays: Play[];
+  /** The thread under way, if there is one. */
+  thread?: ThreadState;
 }

@@ -3,9 +3,11 @@ import { CARDS, collection, costOf, hearing, standUpOdds, usesLeft, type Ctx } f
 import { intimate, nextSpeaker, play, runConvo } from '../convo';
 import { choose } from '../policy';
 import { runSemester } from '../day';
-import { LEVEL, OPEN_UPS_PER_WEEK } from '../rules';
+import { LEVEL, OPEN_UPS_PER_WEEK, THREAD } from '../rules';
 import { phrase, transcript } from '../lines';
 import { recomputeStanding, weekly } from '../school';
+import { THREADS } from '../threads.data';
+import type { Exits, Thread } from '../threads';
 import type { Convo, Play } from '../types';
 import { applyEffects, bond, createWorld, noEffects } from '../world';
 
@@ -14,6 +16,7 @@ function school(students = 12, seed = 3) {
   const w = createWorld({ students, seed });
   w.bond.fill(0);
   w.met.fill(0);
+  w.threads = []; // the rules on their own; threads have their own tests
   return w;
 }
 
@@ -423,10 +426,144 @@ describe('conversations follow on', () => {
       const c = runConvo(w, w.rng.shuffle(w.people.map((p) => p.id)).slice(0, 4), [], 10);
       const lines = transcript(w, c);
       for (const [j, play] of c.plays.entries()) {
-        if (play.card === 'respond') expect(lines[j].text).not.toContain('?');
         const next = c.plays[j + 1];
+        if (play.card === 'respond' && lines[j].text.includes('?')) {
+          // Only a thread asks, and then its owner answers it, then or with their reaction.
+          expect(play.thread, lines[j].text).toBeDefined();
+          if (!lines[j].answer) expect(next?.actor, lines[j].text).toBe(play.thread?.owner);
+        }
         if (next && (play.card === 'ask' || play.card === 'help')) expect(next.actor, lines[j].text).toBe(play.target);
       }
+    }
+  });
+});
+
+describe('threads', () => {
+  const exits = (n: number): Exits => ({
+    wrap: { line: `wrap ${n}`, reaction: `thanks ${n}` },
+    misses: [
+      { kind: 'aboutMe', line: `me ${n}`, reaction: `oh ${n}` },
+      { kind: 'fix', line: `advice ${n}`, reaction: `okay ${n}` },
+    ],
+  });
+  const thread: Thread = {
+    id: 'test',
+    entry: { card: 'talk', interest: 'soccer' },
+    facts: 'for tests',
+    turns: ['turn 0', 'turn 1?', 'turn 2', 'turn 3?', 'turn 4', 'turn 5', 'turn 6'],
+    choices: { 1: exits(1), 3: exits(3), 5: exits(5) },
+    tooSoon: { 3: 'not yet 3', 5: 'not yet 5' },
+  };
+  /** 0 brings up soccer to 1, who has this much Bond with them. */
+  function started(start: number, others: number[] = []) {
+    const w = school();
+    w.threads = [thread];
+    set(w, 0, 1, start);
+    const c = convo([0, 1, ...others]);
+    play(w, c, 0, 'talk:soccer', -1);
+    set(w, 0, 1, start); // whatever the opener did
+    return { w, c };
+  }
+  const goOn = (w: ReturnType<typeof school>, c: Convo, turns: number) => {
+    for (let t = 1; t <= turns; t++) play(w, c, t % 2 ? 1 : 0, 'respond', t % 2 ? 0 : 1);
+  };
+
+  it('pays more the deeper it goes, and a whole thread can make you Friends', () => {
+    const { w, c } = started(3);
+    goOn(w, c, 6);
+    expect(c.plays.map((p) => p.thread?.move)).toEqual(Array(7).fill('on'));
+    expect(transcript(w, c).map((s) => s.text.toLowerCase())).toEqual(thread.turns);
+    expect(bond(w, 0, 1)).toBe(3 + THREAD.turnBond.reduce<number>((a, b) => a + b, 0));
+    expect(bond(w, 0, 1)).toBeGreaterThanOrEqual(LEVEL.friends);
+    expect(c.thread).toBeUndefined();
+  });
+
+  it('can\'t get round opening up once a week', () => {
+    const { w, c } = started(5);
+    for (const p of w.people) p.openUpsThisWeek = OPEN_UPS_PER_WEEK;
+    goOn(w, c, 4);
+    set(w, 0, 1, THREAD.needsBond[5]); // close enough to go on
+    play(w, c, 1, 'respond', 0);
+    play(w, c, 0, 'respond', 1);
+    expect(c.plays.at(-1)?.thread).toMatchObject({ turn: 6, move: 'on' }); // the conversation still happens
+    expect(bond(w, 0, 1)).toBe(7);
+    expect(w.openedUp[1] + w.openedUp[w.n]).toBe(0);
+  });
+
+  it('is too soon without the Bond for it, and you can try again another day', () => {
+    const { w, c } = started(0);
+    goOn(w, c, 2);
+    set(w, 0, 1, THREAD.needsBond[3] - 1);
+    play(w, c, 1, 'respond', 0);
+    expect(c.plays.at(-1)?.thread?.move).toBe('tooSoon');
+    expect(transcript(w, c).at(-1)?.answer?.text).toBe('not yet 3');
+    expect(bond(w, 0, 1)).toBe(THREAD.needsBond[3] - 1 + THREAD.tooSoonBond);
+    expect(w.threadsHeard.size).toBe(0);
+  });
+
+  it('can be wrapped up kindly, or broken with a miss, and gets a reaction either way', () => {
+    for (const [arg, d, reaction] of [
+      ['wrap', THREAD.wrapBond, 'thanks 1'],
+      ['miss:0', THREAD.missBond[1], 'oh 1'],
+    ] as const) {
+      const { w, c } = started(5);
+      play(w, c, 1, `respond:${arg}`, 0);
+      expect(bond(w, 0, 1)).toBe(5 + d);
+      expect(transcript(w, c)[1].answer).toEqual({ speaker: 0, text: reaction });
+      expect(c.thread).toBeUndefined();
+      expect(w.threadsHeard.size).toBe(1); // once each
+    }
+  });
+
+  it('offers the four lines only to whoever it is waiting on', () => {
+    const { w, c } = started(5, [2]);
+    const lines = (me: number) => ['', 'wrap', 'miss:0', 'miss:1'].map((arg) => CARDS.respond.targets({ w, c, me, last: c.plays.at(-1)! }, arg).length);
+    expect(lines(1)).toEqual([1, 1, 1, 1]);
+    expect(lines(2)).toEqual([1, 1, 1, 1]); // anyone can take it up
+    play(w, c, 1, 'respond', 0);
+    expect(lines(2)).toEqual([0, 0, 0, 0]); // then it's theirs
+    expect(lines(0)).toEqual([1, 0, 0, 0]); // and the owner answers
+  });
+
+  it('answers first when the owner leaves it for another card', () => {
+    const { w, c } = started(5);
+    play(w, c, 1, 'respond', 0);
+    play(w, c, 0, 'joke', -1);
+    expect(transcript(w, c)[2].lead?.toLowerCase()).toContain('turn 2');
+    expect(c.thread).toBeUndefined();
+  });
+
+  it('starts from a question, with the person asked as the owner', () => {
+    const w = school();
+    w.threads = [{ ...thread, entry: { card: 'ask', question: 'How’s it going?' } }];
+    const c = convo([0, 1]);
+    play(w, c, 1, 'ask', 0);
+    play(w, c, 0, 'respond', 1);
+    expect(transcript(w, c).map((s) => s.text.toLowerCase())).toEqual(['how’s it going?', 'turn 0']);
+    expect(w.knows[1 * w.n + 0]).toBe(1);
+  });
+});
+
+describe('the canned threads', () => {
+  it('follow the writing rules that can be checked', () => {
+    expect(new Set(THREADS.map((t) => t.id)).size).toBe(THREADS.length);
+    for (const t of THREADS) {
+      const all = [1, 3, 5] as const;
+      const misses = all.flatMap((n) => t.choices[n].misses);
+      const closing = [
+        ...[0, 2, 4, 6].map((n) => t.turns[n]),
+        ...all.flatMap((n) => [t.choices[n].wrap.line, t.choices[n].wrap.reaction]),
+        ...misses.map((m) => m.reaction),
+        t.tooSoon[3],
+        t.tooSoon[5],
+      ];
+      for (const line of closing) expect(line, `${t.id}: nobody gets to answer this`).not.toContain('?');
+      for (const line of [...t.turns, ...closing, ...misses.map((m) => m.line)]) {
+        expect(line, t.id).toMatch(/^[^{}]+$/);
+        expect(line.split(/\s+/).length, `${t.id}: ${line}`).toBeLessThanOrEqual(22);
+        expect(line, t.id).not.toMatch(/\b(maths|mum|timetable|gutted|revision)\b/i);
+      }
+      if (t.entry.card === 'ask') expect(t.entry.question, t.id).toMatch(/\?$/);
     }
   });
 });

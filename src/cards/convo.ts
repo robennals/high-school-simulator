@@ -5,6 +5,7 @@
 import type { Ability } from '../sim/content';
 import { CALLS_FOR_ANSWER, CARDS, collection, costOf, freshStory, hearing, usesLeft, type Ctx } from './cards';
 import { choose, type Intent } from './policy';
+import { advanceThread, opensUp, threadMove, threadStart, threadWaitsFor } from './threads';
 import { FAVOR_DAYS, LEVEL } from './rules';
 import type { Convo, Play, Story, World } from './types';
 import { applyEffects, bond, count, noEffects, together, type Effects } from './world';
@@ -20,7 +21,9 @@ export function runConvo(w: World, members: number[], onlookers: number[], momen
   if (c.members.length < 2) return c;
   together(w, c.members);
   const owned = new Map(c.members.map((id) => [id, collection(w, id)]));
-  for (let m = 0; m < moments && c.members.length >= 2; m++) {
+  // The bell doesn't cut off an answer, or walk away from what someone just told you.
+  const midThread = () => !!c.thread && (c.thread.next % 2 === 0 || c.thread.next >= 3);
+  for (let m = 0; (m < moments || midThread()) && c.members.length >= 2; m++) {
     const last = c.plays[c.plays.length - 1] ?? null;
     const intents = new Map<number, Intent>();
     for (const id of c.members) intents.set(id, choose({ w, c, me: id, last }, owned.get(id)!));
@@ -54,7 +57,7 @@ export function runConvo(w: World, members: number[], onlookers: number[], momen
 /**
  * Who speaks, in order:
  * 1. standing up to a put-down;
- * 2. whoever was just spoken to, then anyone responding to what was just said;
+ * 2. whoever a thread is waiting on or was just spoken to, then anyone responding to what was just said;
  * 3. not the person who just spoke: nobody goes twice in a row while someone else wants to;
  * 4. jumping in beats saying something; then most Bond with the table; then Standing.
  */
@@ -64,6 +67,7 @@ export function nextSpeaker(w: World, c: Convo, wanting: number[], intents: Read
   const turn = (id: number) => {
     if (!last) return 0;
     if (last.card === 'putdown' && key(id) === 'standup') return 3;
+    if (key(id)?.startsWith('respond') && threadWaitsFor(w, c, id)) return 2;
     if (id === last.actor) return -1;
     if (id === last.target && CALLS_FOR_ANSWER.has(last.card)) return 2;
     return key(id) === 'respond' ? 1 : 0;
@@ -88,12 +92,16 @@ export function play(w: World, c: Convo, me: number, key: string, target: number
   const ctx: Ctx = { w, c, me, last };
   const person = w.people[me];
   person.energy -= costOf(ctx, key, target);
-  person.used.set(key, (person.used.get(key) ?? 0) + 1);
+  const inThread = base === 'respond' ? threadMove(w, c, me, arg) : undefined;
+  if (!inThread) person.used.set(key, (person.used.get(key) ?? 0) + 1);
   if (base === 'openup') person.openUpsThisWeek++;
   count(w, `card:${base}`);
   const p: Play = { card: base, actor: me, target };
   if (base === 'opinion') [p.topic, p.stance] = arg.split(':').map(Number);
-  if (base === 'respond' && last) {
+  if (inThread) {
+    p.thread = inThread;
+    if (inThread.turn === 0) p.answers = 'ask'; // answering the question that started it
+  } else if (base === 'respond' && last) {
     p.answers = last.card;
     p.personal = last.card === 'openup';
     // Going along with an opinion is saying it: if it isn't what you think, you can be caught out.
@@ -113,6 +121,7 @@ export function play(w: World, c: Convo, me: number, key: string, target: number
     afterPlay(w, c, p);
     return;
   }
+  p.thread ??= threadStart(w, c, p);
   const outcomes = def.outcomes(ctx, target, arg);
   let r = w.rng.next();
   const outcome = outcomes.find((o) => (r -= o.p) <= 0) ?? outcomes[outcomes.length - 1];
@@ -120,6 +129,11 @@ export function play(w: World, c: Convo, me: number, key: string, target: number
   // Closeness needs privacy: deep cards only count as deep in an intimate setting.
   if (!intimate(w, c)) for (const e of outcome.fx.bond) e.deep = false;
   else if (base === 'openup' && target >= 0 && bond(w, me, target) >= LEVEL.friendly) w.openedUp[me * w.n + target] = 1;
+  // A thread's last two disclosures are each person opening up to the other, out of their week's allowance.
+  if (inThread && (inThread.turn === 4 || inThread.turn === 5) && intimate(w, c) && opensUp(w, inThread)) {
+    w.openedUp[me * w.n + (inThread.turn === 4 ? inThread.friend : inThread.owner)] = 1;
+    if (inThread.turn === 5 || inThread.thread.entry.card !== 'openup') person.openUpsThisWeek++;
+  }
   // Going out with someone counts as both of you opening up.
   if (base === 'askout' && outcome.success) w.openedUp[me * w.n + target] = w.openedUp[target * w.n + me] = 1;
   applyEffects(w, outcome.fx, me, c.members);
@@ -141,9 +155,11 @@ export function intimate(w: World, c: Convo): boolean {
 function afterPlay(w: World, c: Convo, p: Play) {
   const n = w.n;
   const me = p.actor;
+  advanceThread(w, c, p);
   const def = CARDS[p.card];
   const listeners = c.members.filter((m) => m !== me);
-  if (def.warm && p.target >= 0) w.week.warm[me * n + p.target] = Math.min(255, w.week.warm[me * n + p.target] + 1);
+  // A response that breaks the flow isn't a warm one.
+  if (def.warm && p.target >= 0 && (!p.thread || p.thread.move === 'on' || p.thread.move === 'wrap')) w.week.warm[me * n + p.target] = Math.min(255, w.week.warm[me * n + p.target] + 1);
   // Learning what people love: they talked about it, said they love it, or answered your question.
   if (p.card === 'talk' || (p.card === 'opinion' && (p.stance ?? 0) > 0)) for (const l of listeners) w.knows[l * n + me] = 1;
   if (p.answers === 'ask' && p.target >= 0) w.knows[p.target * n + me] = 1;

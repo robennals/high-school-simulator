@@ -98,3 +98,21 @@ export const BULLYING = {
   gossipBond: -1,
   gossipRespect: -1,
 } as const;
+
+/** Threads: deep conversations, one turn at a time. Every number, to tweak in one place. */
+export const THREAD = {
+  /** What each turn on the deep path adds to the Bond between the two. It pays more the deeper it goes. */
+  turnBond: [0, 1, 1, 1, 1, 2, 2],
+  /** From this turn on, a turn is deep (in an intimate setting, it can make you Friends). */
+  deepFrom: 4,
+  /** The friend needs this much Bond to go on at turns 3 and 5. Otherwise it's too soon. */
+  needsBond: { 3: 3, 5: 7 },
+  /** An Open up thread starts only with someone at least Friendly. */
+  openUpBond: 4,
+  /** A kind place to stop. */
+  wrapBond: 1,
+  /** Breaking the flow costs more the more they'd just told you. */
+  missBond: { 1: -1, 3: -1, 5: -2 },
+  /** Going deeper than the friendship allows. */
+  tooSoonBond: -1,
+} as const;

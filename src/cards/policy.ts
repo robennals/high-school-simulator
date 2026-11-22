@@ -12,6 +12,7 @@
  */
 import { CALLS_FOR_ANSWER, CARDS, costOf, subjectOf, usesLeft, type Ctx, type Outcome } from './cards';
 import { ASK_OUT_BOND, BOND_MAX, CASUAL_CAP, CLOSE_FADE_AFTER_DAYS, FRIEND_FADE_AFTER_DAYS, LEVEL } from './rules';
+import { threadMove, threadWaitsFor, type MissKind } from './threads';
 import type { Person } from './types';
 import { bond, type Effects } from './world';
 
@@ -30,6 +31,16 @@ export interface Intent {
  * `restraint` is how reluctant they are anyway. These are habits of the other students, not rules.
  */
 const TEMPTATION = { tempted: { seesThrough: 0.9, restraint: 0.6 }, others: { seesThrough: 1, restraint: 0.8 } } as const;
+
+/** Who tends to which way of missing. */
+const MISSES: Record<MissKind, (T: Person['personality']) => boolean> = {
+  aboutMe: (T) => T.E === 1,
+  fix: (T) => T.C === 1,
+  brushOff: (T) => T.N === -1,
+  pry: (T) => T.statusDrive === 2,
+  tease: (T) => T.A === -1,
+  changeSubject: (T) => T.O === -1,
+};
 
 /** How randomly people pick: higher means less predictable. */
 const NOISE = 0.4;
@@ -90,12 +101,21 @@ export function utility(ctx: Ctx, me: Person, fx: Effects): number {
   return u;
 }
 
-/** People mostly stay on the subject, and don't answer someone opening up with gossip or a joke. */
+/**
+ * People mostly stay on the subject, don't answer someone opening up with gossip, a joke or their own
+ * confession, and don't cut into someone else's thread.
+ */
 function onSubject(ctx: Ctx, key: string, target: number): number {
   const subject = subjectOf(ctx.c.plays);
   if (!subject) return 0;
   const [base, arg] = key.split(':');
+  if (ctx.c.thread && base !== 'respond' && base !== 'standup') {
+    // Not yours: let them talk. Yours: you were just told something.
+    if (!threadWaitsFor(ctx.w, ctx.c, ctx.me)) return -1.5;
+    if (ctx.c.thread.next >= 3 || base === 'openup') return -1.5;
+  }
   if (subject.card === 'openup') {
+    if (base === 'openup') return -2;
     if (base === 'ask' || base === 'compliment') return target === subject.actor ? 0.5 : 0;
     return ['talk', 'opinion', 'joke', 'brag', 'story', 'rumor', 'tease', 'help'].includes(base) ? -1 : 0;
   }
@@ -103,6 +123,20 @@ function onSubject(ctx: Ctx, key: string, target: number): number {
   if (base === 'opinion') return subject.card === 'opinion' && subject.topic === Number(arg) ? 0.5 : 0;
   if (base === 'ask') return target === subject.actor && ['talk', 'opinion', 'brag', 'story'].includes(subject.card) ? 0.3 : 0;
   return 0;
+}
+
+/**
+ * How good a listener someone is: Warm and curious people follow a thread, reserved people are readier to
+ * leave it there, and each way of missing has people prone to it.
+ */
+function listening(ctx: Ctx, me: Person, key: string): number {
+  const m = threadMove(ctx.w, ctx.c, me.id, key.split(':').slice(1).join(':'));
+  if (!m || m.owner === me.id) return 0;
+  const T = me.personality;
+  if (m.move === 'on') return 1 + (T.A === 1 ? 0.4 : 0) + (T.O === 1 ? 0.3 : 0);
+  if (m.move === 'wrap') return 0.3 + (T.E === -1 ? 0.5 : 0);
+  if (m.move === 'tooSoon' || (m.turn !== 1 && m.turn !== 3 && m.turn !== 5)) return 0;
+  return MISSES[m.thread.choices[m.turn].misses[m.move].kind](T) ? 1.8 : 0;
 }
 
 /** A small nudge toward the cards their personality favors. */
@@ -113,9 +147,10 @@ function bias(me: Person, key: string, ctx: Ctx, target: number, outcomes: Outco
   let b = 0;
   // Answering what was said comes naturally, and more so when it was said to you.
   if (def.kind === 'response') b += ctx.last?.target === me.id ? 2 : 0.8;
+  if (base === 'respond' && ctx.c.thread) b += listening(ctx, me, key);
   b += onSubject(ctx, key, target);
   if (T.E === 1 && (def.aim === 'table' || base === 'joke')) b += 0.2;
-  if (T.A === 1 && ['respond', 'compliment', 'ask'].includes(base)) b += 0.25;
+  if (T.A === 1 && !key.includes('miss') && ['respond', 'compliment', 'ask'].includes(base)) b += 0.25;
   if (T.A === 1 && def.kind === 'attack') b -= 0.5;
   if (T.A === -1 && ['tease', 'brag'].includes(base)) b += 0.25;
   if (T.O === 1 && base === 'ask') b += 0.2;
@@ -162,9 +197,14 @@ export function choose(ctx: Ctx, owned: Map<string, number>): Intent {
   const me = ctx.w.people[ctx.me];
   const next = () => ctx.w.rng.next();
   let best: Intent = { urgency: 0, key: '', target: -1, cost: 0, score: -Infinity };
+  const waitedOn = !!ctx.c.thread && threadWaitsFor(ctx.w, ctx.c, ctx.me);
+  // The owner answers what they were asked.
+  const mustAnswer = waitedOn && ctx.c.thread?.owner === ctx.me;
   for (const key of owned.keys()) {
-    if (usesLeft(ctx.w, ctx.me, owned, key) <= 0) continue;
     const [base, ...rest] = key.split(':');
+    if (mustAnswer && key !== 'respond') continue;
+    // Responding in a thread doesn't use up copies.
+    if (!(waitedOn && base === 'respond') && usesLeft(ctx.w, ctx.me, owned, key) <= 0) continue;
     const def = CARDS[base];
     if (!def) continue;
     const arg = rest.join(':');
@@ -181,7 +221,9 @@ export function choose(ctx: Ctx, owned: Map<string, number>): Intent {
   const jumpBar = me.personality.E === 1 ? 0.9 : me.personality.E === -1 ? 2 : 1.4;
   // When you're spoken to, you answer, even if you'd rather not.
   const spokenTo = ctx.last?.target === ctx.me && CALLS_FOR_ANSWER.has(ctx.last.card) && best.key !== '';
-  if (best.score < quietBar && !spokenTo) return { ...best, urgency: 0 };
+  // ...and when someone's telling you about something, you say something back.
+  const followsThread = waitedOn && best.key.startsWith('respond') && ctx.c.thread?.friend === ctx.me;
+  if (best.score < quietBar && !spokenTo && !mustAnswer && !followsThread) return { ...best, urgency: 0 };
   if (best.score > jumpBar && me.energy >= best.cost + 1) return { ...best, urgency: 2 };
   return best;
 }

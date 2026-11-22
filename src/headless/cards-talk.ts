@@ -31,9 +31,10 @@ for (let i = 0; i < count; i++) {
   const name = (id: number) => w.people[id].name.replace(/ (\S)\S*$/, ' $1.');
   console.log(`\n--- ${members.map(name).join(', ')}`);
   transcript(w, c).forEach((s, j) => {
-    const { card, success } = c.plays[j];
+    const { card, success, thread } = c.plays[j];
     const how = card === 'standup' ? (success ? ', it works' : ', it fails') : card === 'joke' && !success ? ', it flops' : '';
-    console.log(`${name(s.speaker).padStart(11)}: ${s.text}  [${card}${how}]`);
+    const step = !thread ? '' : thread.move === 'on' ? (thread.turn < 0 ? ', thread' : `, thread ${thread.turn}`) : typeof thread.move === 'number' ? ', miss' : `, ${thread.move}`;
+    console.log(`${name(s.speaker).padStart(11)}: ${s.text}  [${card}${how}${step}]`);
     if (s.answer) console.log(`${name(s.answer.speaker).padStart(11)}: ${s.answer.text}`);
   });
 }

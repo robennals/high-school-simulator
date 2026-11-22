@@ -7,8 +7,9 @@
  * - **The lead** is there when the move alone wouldn't follow: it answers what you were just asked, or
  *   acknowledges what was said and owns up to changing the subject.
  * - **A response closes an exchange,** so responses never ask questions: nobody would get to answer.
- * - **A line that needs a particular answer carries its replies** (THREADS).
+ * - **A line that needs a particular answer carries its replies** (REPLIES).
  *
+ * Inside a thread (threads.ts) the words are the thread's own, and the owner's reaction is the answer.
  * A line isn't repeated in a conversation until its pool runs out, and picking one never rolls the
  * world's dice, so words can't change what happens.
  *
@@ -19,6 +20,7 @@
 import { OPINION_TOPICS, type Ability } from '../sim/content';
 import { CALLS_FOR_ANSWER, drawnBy, subjectOf, tempted } from './cards';
 import { LEVEL } from './rules';
+import { threadWords } from './threads';
 import type { Convo, Play, Story, World } from './types';
 import { bond } from './world';
 
@@ -42,7 +44,7 @@ export interface Spoken {
 
 // ---------------------------------------------------------------- lines that need their own replies
 
-const THREADS: Record<string, readonly string[]> = {
+const REPLIES: Record<string, readonly string[]> = {
   // Getting to know someone
   'What are you into?': ['Mostly {mine}. Don’t judge me.', '{mine}, honestly. Way too much.', 'Kind of a lot of things. {mine}, mainly.'],
   'What classes do you have?': ['English first, then math. Pray for me.', 'Mr. Dunn for history, so… yeah.', 'Ms. Okafor for English. The rest is a blur.'],
@@ -349,7 +351,7 @@ const changes = (pool: readonly string[]): Move => ({ pool, follows: false });
 function repliesTo(said: readonly Spoken[], i: number): readonly string[] | undefined {
   let at = i;
   while (at > 0 && ASK.back.includes(said[at]?.template)) at--; // "What about you?" is the question before it
-  return THREADS[said[at]?.template ?? ''];
+  return REPLIES[said[at]?.template ?? ''];
 }
 
 /** What a card says, given the subject. */
@@ -361,6 +363,8 @@ function moveFor(w: World, before: readonly Play[], said: readonly Spoken[], p: 
   const askedMe = prev?.card === 'ask' && prev.target === p.actor;
   const askedWhatILike = askedMe && WHAT_YOU_LIKE.has(said[before.length - 1]?.template ?? '');
   const me = w.people[p.actor];
+  // A thread's words are its own; only starting one can need a lead.
+  if (p.thread) return { pool: [threadWords(p.thread).line], follows: p.card === 'respond' };
   switch (p.card) {
     case 'ask': {
       if (askedMe && prev.actor === p.target && CAN_ASK_BACK.has(said[before.length - 1]?.template ?? '')) return follows(ASK.back);
@@ -503,7 +507,13 @@ function leadsFor(w: World, before: readonly Play[], said: readonly Spoken[], p:
   if (!prev || p.card === 'respond') return [];
   const out: (readonly string[])[] = [];
   const toMe = prev.target === p.actor && CALLS_FOR_ANSWER.has(prev.card);
-  if (toMe) {
+  const t = prev.thread?.move === 'on' ? prev.thread : undefined;
+  if (t && t.turn % 2 !== 0 && t.owner === p.actor) {
+    // Asked in a thread, then doing something else: answer first.
+    out.push([threadWords({ ...t, turn: t.turn + 1 }).line]);
+  } else if (t && t.turn >= 2 && t.turn < 6 && t.friend === p.actor && !move.follows) {
+    out.push(ACK.openup);
+  } else if (toMe) {
     // Spoken to, so that gets answered first (unless the move is the answer).
     const isAnswer =
       (prev.card === 'ask' && [TALK.asked, OPINION.askedLove, OPINION.askedHate, JOKE.afterAsk].some((pool) => pool === move.pool)) ||
@@ -578,7 +588,11 @@ export function phrase(w: World, c: Convo, before: readonly Play[], said: readon
   };
   // A move is about its own topic, or the subject; a lead is about what was just said.
   let words = fill(template, p.topic !== undefined || p.interest !== undefined ? p : subject);
-  if (p.card === 'story') words = followedBy(words, storyText(w, w.stories[p.storyId!], p.actor), '{story}');
+  if (p.card === 'story') {
+    const told = storyText(w, w.stories[p.storyId!], p.actor);
+    // The same news twice over: they've heard it too.
+    words = said.some((s) => s.text.toLowerCase().includes(told.toLowerCase())) ? 'Yeah, I heard that too.' : followedBy(words, told, '{story}');
+  }
   if (p.card === 'rumor') words = followedBy(words, storyText(w, { id: -1, kind: 'rumor', actor: p.target, target: -1, day: w.day, true: false, mean: true }, p.actor), '{story}');
   let start = template;
   // At a table, say who you mean, unless you're answering them or have just named them.
@@ -595,6 +609,10 @@ export function phrase(w: World, c: Convo, before: readonly Play[], said: readon
   if (leads.length) {
     spoken.lead = leads.join(' ');
     spoken.leadTemplates = leadTemplates;
+  }
+  if (p.thread) {
+    const { reaction } = threadWords(p.thread);
+    if (reaction) spoken.answer = { speaker: p.thread.owner, text: reaction };
   }
   const replies = p.card === 'invite' ? INVITE : p.card === 'askout' ? ASK_OUT : null;
   if (replies) spoken.answer = { speaker: p.target, text: pick(p.success ? replies.yes : replies.no, used, seed) };

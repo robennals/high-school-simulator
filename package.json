@@ -11,7 +11,8 @@
     "build": "tsc --noEmit && vite build",
     "realism": "node --import tsx src/headless/realism.ts",
     "cards": "node --import tsx src/headless/cards-sim.ts",
-    "talk": "node --import tsx src/headless/cards-talk.ts"
+    "talk": "node --import tsx src/headless/cards-talk.ts",
+    "threads": "node --import tsx src/headless/cards-threads.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

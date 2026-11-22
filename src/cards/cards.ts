@@ -7,7 +7,8 @@
  * `talk:anime`, `brag:humor`, `help:academics`, `story:12`.
  */
 import { ABILITIES, type Ability, type Interest } from '../sim/content';
-import { ASK_OUT_BOND, BULLYING, LEVEL, OPEN_UPS_PER_WEEK, STORY_DAYS } from './rules';
+import { ASK_OUT_BOND, BULLYING, LEVEL, OPEN_UPS_PER_WEEK, STORY_DAYS, THREAD } from './rules';
+import { opensUp, threadMove, type ThreadMove } from './threads';
 import type { Convo, Person, Play, Story, World } from './types';
 import { SHOWS, bond, closeFriendsOf, drawnTo, isFriend, noEffects, type Effects } from './world';
 
@@ -308,12 +309,18 @@ export const CARDS: Record<string, CardDef> = {
 
   // Responses --------------------------------------------------------------------------------------
   respond: {
-    name: 'Respond warmly',
+    name: 'Respond',
     kind: 'response',
     cost: 0,
     aim: 'one',
     warm: true,
-    targets: (ctx) => {
+    targets: (ctx, arg) => {
+      // In a thread, Respond is the four lines you could say: deeper, a kind stop, or two that miss.
+      if (ctx.c.thread) {
+        const m = threadMove(ctx.w, ctx.c, ctx.me, arg);
+        return m ? [ctx.me === m.owner ? m.friend : m.owner] : [];
+      }
+      if (arg) return [];
       const l = ctx.last;
       if (!l) return [];
       const base = l.card;
@@ -325,7 +332,9 @@ export const CARDS: Record<string, CardDef> = {
       if (base === 'respond') return l.personal ? answering(ctx, [base], true) : [];
       return answering(ctx, ['talk', 'opinion', 'brag', 'help', 'openup', 'story']);
     },
-    outcomes: (ctx, t) => {
+    outcomes: (ctx, t, arg) => {
+      const m = threadMove(ctx.w, ctx.c, ctx.me, arg);
+      if (m) return threadOutcomes(ctx.w, m);
       const fx = noEffects();
       // Deep if it answers someone opening up, or carries that on.
       const deep = (ctx.last!.card === 'openup' || !!ctx.last!.personal) && bond(ctx.w, ctx.me, t) >= LEVEL.friendly;
@@ -492,6 +501,19 @@ export const CARDS: Record<string, CardDef> = {
 
 };
 
+/** What a turn of a thread does. */
+function threadOutcomes(w: World, m: ThreadMove): Outcome[] {
+  const fx = noEffects();
+  const pair = { a: m.owner, b: m.friend };
+  if (m.move === 'on') {
+    const d = THREAD.turnBond[m.turn];
+    if (d) fx.bond.push({ ...pair, d, deep: opensUp(w, m) });
+  } else if (m.move === 'wrap') fx.bond.push({ ...pair, d: THREAD.wrapBond });
+  else if (m.move === 'tooSoon') fx.bond.push({ ...pair, d: THREAD.tooSoonBond });
+  else if (m.turn === 1 || m.turn === 3 || m.turn === 5) fx.bond.push({ ...pair, d: THREAD.missBond[m.turn] });
+  return [{ p: 1, fx, success: m.move === 'on' || m.move === 'wrap' }];
+}
+
 /** Whether `viewer` is drawn by `wearer`'s shirt: a funny tee if they value funny people, a fan tee if they love the thing. */
 export function drawnBy(w: World, viewer: number, wearer: number): boolean {
   const v = w.people[viewer];
@@ -604,6 +626,8 @@ export function collection(w: World, id: number): Map<string, number> {
   }
   // Responding: the warmer, quieter, more open or more eager to fit in you are, the more of it.
   add('respond', 8 + (T.A === 1 ? 2 : 0) + (T.E === -1 ? 1 : 0) + (T.O === 1 ? 1 : 0) + (T.N === 1 ? 1 : 0) + (T.statusDrive === 2 ? 1 : 0));
+  // The other lines Respond offers inside a thread (they don't use up copies).
+  for (const key of ['respond:wrap', 'respond:miss:0', 'respond:miss:1']) add(key, 1);
   add('standup', 1 + (T.A === 1 ? 1 : 0));
   // Practice earns extra copies.
   for (const [k, n] of p.earned) add(k, n);

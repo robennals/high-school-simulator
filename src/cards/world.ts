@@ -5,6 +5,7 @@
 import { ABILITIES, ABILITY_BUDGET, ABILITY_MAX_POINTS, HERITAGES, INTERESTS, LOOKS, LOOK_SHIRT_TOPICS, OPINION_TOPICS, type Ability, type Look } from '../sim/content';
 import { Rng, clamp } from '../sim/rng';
 import { BOND_MAX, BOND_MIN, CASUAL_CAP, ENERGY_MAX, ENERGY_WAKE, LEVEL, RESPECT_MAX, RESPECT_MIN, RESPECT_START } from './rules';
+import { THREADS } from './threads.data';
 import type { Person, Personality, Quality, Side, World } from './types';
 
 export const PERIODS = 6;
@@ -279,6 +280,8 @@ export function createWorld(opts: WorldOptions): World {
     standingHistory: [],
     knows: new Uint8Array(n * n),
     openedUp: new Uint8Array(n * n),
+    threads: THREADS,
+    threadsHeard: new Set(),
     claims: new Map(),
     hangouts: [],
   };
