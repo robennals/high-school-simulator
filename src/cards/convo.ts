@@ -1,8 +1,8 @@
 /**
  * Conversations (spec §5): a series of moments. In each moment everyone chooses to stay quiet, say
- * something, or jump in; whoever wants to speak most does, and plays one card. Put-downs are answered
- * in the room, with bystanders choosing sides.
+ * something, or jump in; whoever wants to speak most does, and plays one card.
  */
+import type { Ability } from '../sim/content';
 import { CARDS, collection, costOf, freshStory, hearing, usesLeft, type Ctx } from './cards';
 import { choose, type Intent } from './policy';
 import { FAVOR_DAYS, LEVEL } from './rules';
@@ -51,16 +51,30 @@ export function runConvo(w: World, members: number[], onlookers: number[], momen
   return c;
 }
 
+/** Cards said to someone that they'd naturally answer. */
+const CALLS_FOR_ANSWER = new Set(['ask', 'compliment', 'help', 'openup', 'tease']);
+
 /**
- * Who speaks: standing up to a put-down goes first; then jumping in beats saying something; then most
- * Bond with the table; then Standing.
+ * Who speaks, in order:
+ * 1. standing up to a put-down;
+ * 2. whoever was just spoken to, then anyone responding to what was just said;
+ * 3. not the person who just spoke: nobody goes twice in a row while someone else wants to;
+ * 4. jumping in beats saying something; then most Bond with the table; then Standing.
  */
 export function nextSpeaker(w: World, c: Convo, wanting: number[], intents: ReadonlyMap<number, Intent>): number {
-  const answers = (id: number) => c.plays.at(-1)?.card === 'putdown' && intents.get(id)?.key === 'standup';
+  const last = c.plays.at(-1);
+  const key = (id: number) => intents.get(id)?.key;
+  const turn = (id: number) => {
+    if (!last) return 0;
+    if (last.card === 'putdown' && key(id) === 'standup') return 3;
+    if (id === last.actor) return -1;
+    if (id === last.target && CALLS_FOR_ANSWER.has(last.card)) return 2;
+    return key(id) === 'respond' ? 1 : 0;
+  };
   const table = (id: number) => c.members.reduce((t, o) => (o === id ? t : t + bond(w, id, o)), 0);
   const urgency = (id: number) => intents.get(id)?.urgency ?? 0;
   return wanting.reduce((a, b) => {
-    if (answers(a) !== answers(b)) return answers(a) ? a : b;
+    if (turn(a) !== turn(b)) return turn(a) > turn(b) ? a : b;
     if (urgency(a) !== urgency(b)) return urgency(a) > urgency(b) ? a : b;
     if (table(a) !== table(b)) return table(a) > table(b) ? a : b;
     if (w.standing[a] !== w.standing[b]) return w.standing[a] > w.standing[b] ? a : b;
@@ -82,11 +96,14 @@ export function play(w: World, c: Convo, me: number, key: string, target: number
   count(w, `card:${base}`);
   const p: Play = { card: base, actor: me, target };
   if (base === 'opinion') [p.topic, p.stance] = arg.split(':').map(Number);
-  if (['agree', 'push', 'fake'].includes(base) && last) {
-    p.topic = last.topic;
-    p.stance = base === 'push' ? Math.sign(person.opinions[last.topic!]) : last.stance;
+  if (base === 'respond' && last) {
+    p.answers = last.card;
+    p.personal = last.card === 'openup';
+    // Going along with an opinion is saying it: if it isn't what you think, you can be caught out.
+    if (last.card === 'opinion') [p.topic, p.stance] = [last.topic, last.stance];
   }
   if (base === 'talk') p.interest = arg as never;
+  if (base === 'brag' || base === 'help') p.ability = arg as Ability;
   if (base === 'story') p.storyId = Number(arg);
   if (base === 'rumor') {
     // The rumor is about someone who isn't here: tellStory does all its effects.
@@ -131,8 +148,8 @@ function afterPlay(w: World, c: Convo, p: Play) {
   const listeners = c.members.filter((m) => m !== me);
   if (def.warm && p.target >= 0) w.week.warm[me * n + p.target] = Math.min(255, w.week.warm[me * n + p.target] + 1);
   // Learning what people love: they talked about it, said they love it, or answered your question.
-  if (p.card === 'talk' || (p.stance ?? 0) > 0) for (const l of listeners) w.knows[l * n + me] = 1;
-  if (p.card === 'answer' && p.target >= 0) w.knows[p.target * n + me] = 1;
+  if (p.card === 'talk' || (p.card === 'opinion' && (p.stance ?? 0) > 0)) for (const l of listeners) w.knows[l * n + me] = 1;
+  if (p.answers === 'ask' && p.target >= 0) w.knows[p.target * n + me] = 1;
   // Saying the opposite of what you told someone before: they catch you being two-faced.
   if (p.topic !== undefined && p.stance !== undefined) {
     const topics = w.people[0].opinions.length;
@@ -158,7 +175,7 @@ function afterPlay(w: World, c: Convo, p: Play) {
     tellStory(w, c, me, s.id);
     count(w, 'rumors');
   }
-  if ((p.card === 'invite' || p.card === 'inviteout') && p.success) w.hangouts.push([me, p.target]);
+  if (p.card === 'invite' && p.success) w.hangouts.push([me, p.target]);
   if (p.card === 'askout' && p.success) {
     w.people[me].partner = p.target;
     w.people[p.target].partner = me;

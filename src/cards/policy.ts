@@ -96,11 +96,12 @@ function bias(me: Person, key: string, ctx: Ctx, target: number, outcomes: Outco
   const def = CARDS[base];
   const T = me.personality;
   let b = 0;
-  if (def.kind === 'response') b += 0.2; // answering what was said comes naturally
+  // Answering what was said comes naturally, and more so when it was said to you.
+  if (def.kind === 'response') b += ctx.last?.target === me.id ? 2 : 0.8;
   if (T.E === 1 && (def.aim === 'table' || base === 'joke')) b += 0.2;
-  if (T.A === 1 && ['listen', 'laugh', 'compliment', 'ask', 'same', 'thank', 'impressed'].includes(base)) b += 0.25;
+  if (T.A === 1 && ['respond', 'compliment', 'ask'].includes(base)) b += 0.25;
   if (T.A === 1 && def.kind === 'attack') b -= 0.5;
-  if (T.A === -1 && ['tease', 'push', 'brag', 'teaseshirt'].includes(base)) b += 0.25;
+  if (T.A === -1 && ['tease', 'brag'].includes(base)) b += 0.25;
   if (T.O === 1 && base === 'ask') b += 0.2;
   // Opening up first is how a friendship starts (the both-ways rule).
   if (base === 'openup' && target >= 0 && bond(ctx.w, me.id, target) >= LEVEL.friendly && !ctx.w.openedUp[me.id * ctx.w.n + target]) b += 0.6;

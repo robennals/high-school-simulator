@@ -164,6 +164,10 @@ export interface Play {
   interest?: Interest;
   ability?: Ability;
   storyId?: number;
+  /** For a response: the kind of card it answers. */
+  answers?: string;
+  /** For a response: it answers someone opening up, so they can answer back, deeply. */
+  personal?: boolean;
   /** For jokes and other rolls: whether it worked. */
   success?: boolean;
 }

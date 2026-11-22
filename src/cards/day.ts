@@ -87,7 +87,7 @@ function seat(w: World, spots: number, cap: number, aloneOk: boolean): number[][
 function makesRoom(w: World, table: number[], joiner: number): boolean {
   if (table.some((o) => bond(w, o, joiner) <= -2)) return false;
   if (table.some((o) => bond(w, o, joiner) >= LEVEL.acquaintances)) return true;
-  // A table of strangers: an edgy, status-hungry member may play Leave them out on someone below them.
+  // A table of strangers: an edgy, status-hungry member may leave out someone below them.
   const gatekeeper = table.find((o) => {
     const p = w.people[o].personality;
     return p.A === -1 && p.statusDrive === 2 && w.standing[joiner] < w.standing[o];

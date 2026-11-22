@@ -152,9 +152,14 @@ describe('the printed rules', () => {
     const w = school();
     const c = convo([0, 1]);
     const ctx = (last: Convo['plays'][number] | null): Ctx => ({ w, c, me: 1, last });
-    expect(CARDS.laugh.targets(ctx(null), '')).toEqual([]);
-    expect(CARDS.laugh.targets(ctx({ card: 'share', actor: 0, target: 1 }), '')).toEqual([]);
-    expect(CARDS.laugh.targets(ctx({ card: 'joke', actor: 0, target: -1, success: true }), '')).toEqual([0]);
+    const respond = (last: Convo['plays'][number] | null) => CARDS.respond.targets(ctx(last), '');
+    expect(respond(null)).toEqual([]);
+    expect(respond({ card: 'ask', actor: 0, target: 2 })).toEqual([]); // not asked of you
+    expect(respond({ card: 'ask', actor: 0, target: 1 })).toEqual([0]);
+    expect(respond({ card: 'joke', actor: 0, target: -1, success: false })).toEqual([]);
+    expect(respond({ card: 'joke', actor: 0, target: -1, success: true })).toEqual([0]);
+    expect(respond({ card: 'respond', actor: 0, target: 1 })).toEqual([]);
+    expect(respond({ card: 'respond', actor: 0, target: 1, personal: true })).toEqual([0]);
   });
 
   it('makes cards to the table cheaper for outgoing people and dearer for reserved people in a crowd', () => {
@@ -171,7 +176,8 @@ describe('the printed rules', () => {
     const w = school();
     const own = collection(w, 0);
     expect(own.get('ask')).toBeGreaterThanOrEqual(1);
-    expect(own.get('laugh')).toBeGreaterThanOrEqual(1);
+    expect(own.get('respond')).toBeGreaterThanOrEqual(1);
+    expect(Object.keys(CARDS)).toHaveLength(17);
     expect(own.get('openup')).toBe(1);
   });
 });
@@ -263,6 +269,19 @@ describe('bullying', () => {
     expect(nextSpeaker(w, c, [0, 2], intents)).toBe(0);
     play(w, c, 0, 'putdown', 1);
     expect(nextSpeaker(w, c, [0, 2], intents)).toBe(2);
+  });
+
+  it('lets whoever was spoken to answer, and nobody go twice in a row while someone else wants to', () => {
+    const w = school();
+    set(w, 0, 3, 11); // 0 and 3 are who the table likes
+    set(w, 1, 2, 1);
+    const c = convo([0, 1, 2, 3]);
+    const intent = (key: string, urgency: 1 | 2) => ({ key, urgency, target: 0, cost: 0, score: 1 });
+    const intents = new Map([[0, intent('ask', 2)], [1, intent('respond', 1)], [2, intent('talk:anime', 1)], [3, intent('joke', 2)]]);
+    c.plays.push({ card: 'ask', actor: 0, target: 1 });
+    expect(nextSpeaker(w, c, [0, 1, 2, 3], intents)).toBe(1);
+    expect(nextSpeaker(w, c, [0, 2], intents)).toBe(2);
+    expect(nextSpeaker(w, c, [0], intents)).toBe(0);
   });
 
   it('lets the victim tell the story, and hearsay is not a first impression', () => {

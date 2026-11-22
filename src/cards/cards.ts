@@ -35,7 +35,7 @@ export interface CardDef {
   cost: number;
   /** Said to one person, or to the whole table. */
   aim: 'one' | 'table';
-  /** Mean cards cost 1 more for a week after people stand together against you (§8 rule 14). */
+  /** Mean cards cost 1 more for a week after a teacher reports you (§8 rule 10). */
   mean?: boolean;
   /** Warm cards count toward trying too hard (§8 rule 13). */
   warm?: boolean;
@@ -144,7 +144,7 @@ export function freshStory(w: World, id: number) {
 export const CARDS: Record<string, CardDef> = {
   // Starters ---------------------------------------------------------------------------------------
   ask: {
-    name: 'Ask about them',
+    name: 'Get to know them',
     kind: 'starter',
     cost: 1,
     aim: 'one',
@@ -152,21 +152,9 @@ export const CARDS: Record<string, CardDef> = {
     targets: (ctx) => others(ctx),
     outcomes: (ctx, t) => {
       const fx = noEffects();
-      // About something they love (you know it): +2. Curious people's questions land better.
-      const knows = ctx.w.knows[ctx.me * ctx.w.n + t] === 1;
+      // About something they love (you know it, or their shirt says it): +2. Curious people's questions land better.
+      const knows = ctx.w.knows[ctx.me * ctx.w.n + t] === 1 || drawnBy(ctx.w, ctx.me, t);
       fx.bond.push({ a: ctx.me, b: t, d: 1 + (knows ? 1 : 0) + (knows && P(ctx).personality.O === 1 ? 1 : 0) });
-      return sure(fx);
-    },
-  },
-  share: {
-    name: 'Share something small',
-    kind: 'starter',
-    cost: 1,
-    aim: 'one',
-    targets: (ctx) => others(ctx),
-    outcomes: (ctx, t) => {
-      const fx = noEffects();
-      if (bond(ctx.w, ctx.me, t) >= LEVEL.acquaintances) fx.bond.push({ a: ctx.me, b: t, d: 1 });
       return sure(fx);
     },
   },
@@ -310,157 +298,29 @@ export const CARDS: Record<string, CardDef> = {
   },
 
   // Responses --------------------------------------------------------------------------------------
-  listen: {
-    name: 'Really listen',
-    kind: 'response',
-    cost: 0,
-    aim: 'one',
-    targets: (ctx) => answering(ctx, ['share', 'openup', 'same', 'talk', 'opinion', 'story', 'brag', 'answer', 'more']),
-    outcomes: (ctx, t) => {
-      const fx = noEffects();
-      const personal = ['openup', 'same', 'more'].includes(ctx.last!.card);
-      fx.bond.push({ a: ctx.me, b: t, d: 1 + (P(ctx).personality.E === -1 ? 1 : 0), deep: personal });
-      return sure(fx);
-    },
-  },
-  laugh: {
-    name: 'Laugh along',
+  respond: {
+    name: 'Respond warmly',
     kind: 'response',
     cost: 0,
     aim: 'one',
     warm: true,
-    targets: (ctx) => (ctx.last?.success ? answering(ctx, ['joke']) : answering(ctx, ['tease'], true).filter(() => ctx.last?.success)),
+    targets: (ctx) => {
+      const l = ctx.last;
+      if (!l) return [];
+      const base = l.card;
+      // Some lines only the person they were said to can answer; some only if they landed.
+      if (base === 'ask' || base === 'compliment') return answering(ctx, [base], true);
+      if (base === 'joke') return l.success ? answering(ctx, [base]) : [];
+      if (base === 'tease') return l.success ? answering(ctx, [base], true) : [];
+      // Opening up gets three beats: they open up, someone responds, they answer back.
+      if (base === 'respond') return l.personal ? answering(ctx, [base], true) : [];
+      return answering(ctx, ['talk', 'opinion', 'brag', 'help', 'openup', 'story']);
+    },
     outcomes: (ctx, t) => {
       const fx = noEffects();
-      fx.bond.push({ a: ctx.me, b: t, d: 1 });
-      return sure(fx);
-    },
-  },
-  answer: {
-    name: 'Answer honestly',
-    kind: 'response',
-    cost: 1,
-    aim: 'one',
-    targets: (ctx) => answering(ctx, ['ask', 'askshirt'], true),
-    outcomes: (ctx, t) => {
-      const fx = noEffects();
-      fx.bond.push({ a: ctx.me, b: t, d: 1 });
-      return sure(fx);
-    },
-  },
-  same: {
-    name: 'Same here',
-    kind: 'response',
-    cost: 1,
-    aim: 'one',
-    targets: (ctx) => answering(ctx, ['share', 'openup', 'same', 'more']),
-    outcomes: (ctx, t) => {
-      const fx = noEffects();
-      const close = bond(ctx.w, ctx.me, t) >= LEVEL.friendly;
-      fx.bond.push({ a: ctx.me, b: t, d: 1 + (P(ctx).personality.E === -1 ? 1 : 0), deep: close });
-      return sure(fx);
-    },
-  },
-  more: {
-    name: 'Tell them more',
-    kind: 'response',
-    cost: 1,
-    aim: 'one',
-    targets: (ctx) => answering(ctx, ['listen'], true),
-    outcomes: (ctx, t) => {
-      const fx = noEffects();
-      const close = bond(ctx.w, ctx.me, t) >= LEVEL.friendly;
-      fx.bond.push({ a: ctx.me, b: t, d: close ? 2 : 0, deep: close });
-      return sure(fx);
-    },
-  },
-  agree: {
-    name: 'Agree',
-    kind: 'response',
-    cost: 0,
-    aim: 'one',
-    targets: (ctx) => answering(ctx, ['opinion', 'agree', 'push']).filter(() => P(ctx).opinions[ctx.last!.topic!] * ctx.last!.stance! > 0),
-    outcomes: (ctx, t) => {
-      const fx = opinionFx(ctx, ctx.last!.topic!, ctx.last!.stance!, t);
-      fx.bond.push({ a: ctx.me, b: t, d: 1 });
-      return sure(fx);
-    },
-  },
-  push: {
-    name: 'Push back',
-    kind: 'response',
-    cost: 2,
-    aim: 'one',
-    targets: (ctx) => answering(ctx, ['opinion', 'agree', 'push']).filter(() => P(ctx).opinions[ctx.last!.topic!] * ctx.last!.stance! < 0),
-    outcomes: (ctx, t) => {
-      const topic = ctx.last!.topic!;
-      const mine = Math.sign(P(ctx).opinions[topic]);
-      const fx = noEffects();
-      fx.bond.push({ a: ctx.me, b: t, d: -1 });
-      let side = 0;
-      for (const l of others(ctx)) {
-        if (l === t) continue;
-        const op = ctx.w.people[l].opinions[topic] * mine;
-        if (op > 0) {
-          fx.bond.push({ a: ctx.me, b: l, d: 1 });
-          fx.respect.push({ from: l, to: ctx.me, d: 1 });
-          side++;
-        } else if (op < 0) side--;
-      }
-      if (side > 0) fx.energy.push({ id: ctx.me, d: 1 });
-      return sure(fx);
-    },
-  },
-  fake: {
-    name: 'Go along',
-    kind: 'response',
-    cost: 0,
-    aim: 'one',
-    targets: (ctx) => answering(ctx, ['opinion', 'agree', 'push']).filter(() => P(ctx).opinions[ctx.last!.topic!] * ctx.last!.stance! <= 0),
-    outcomes: (ctx, t) => {
-      const fx = noEffects();
-      fx.bond.push({ a: ctx.me, b: t, d: 1 });
-      return sure(fx);
-    },
-  },
-  impressed: {
-    name: 'Be impressed',
-    kind: 'response',
-    cost: 0,
-    aim: 'one',
-    warm: true,
-    targets: (ctx) => answering(ctx, ['brag', 'help']).concat(ctx.last?.card === 'joke' && ctx.last.success ? answering(ctx, ['joke']) : []).slice(0, 1),
-    outcomes: (ctx, t) => {
-      const fx = noEffects();
-      fx.bond.push({ a: ctx.me, b: t, d: 1 });
-      return sure(fx);
-    },
-  },
-  teaseback: {
-    name: 'Tease back',
-    kind: 'response',
-    cost: 1,
-    aim: 'one',
-    targets: (ctx) => answering(ctx, ['tease', 'teaseshirt'], true).concat(answering(ctx, ['brag'])).slice(0, 1),
-    outcomes: (ctx, t) => {
-      const fx = noEffects();
-      if (bond(ctx.w, ctx.me, t) >= LEVEL.friendly) fx.bond.push({ a: ctx.me, b: t, d: 1 });
-      else {
-        fx.bond.push({ a: ctx.me, b: t, d: -1 });
-        for (const l of others(ctx)) if (l !== t) fx.respect.push({ from: l, to: ctx.me, d: 1 });
-      }
-      return sure(fx);
-    },
-  },
-  thank: {
-    name: 'Thank them',
-    kind: 'response',
-    cost: 0,
-    aim: 'one',
-    targets: (ctx) => answering(ctx, ['compliment', 'help'], true),
-    outcomes: (ctx, t) => {
-      const fx = noEffects();
-      fx.bond.push({ a: ctx.me, b: t, d: 1 });
+      // Deep if it answers someone opening up, or carries that on.
+      const deep = (ctx.last!.card === 'openup' || !!ctx.last!.personal) && bond(ctx.w, ctx.me, t) >= LEVEL.friendly;
+      fx.bond.push({ a: ctx.me, b: t, d: 1 + (P(ctx).personality.E === -1 ? 1 : 0), deep });
       return sure(fx);
     },
   },
@@ -489,18 +349,16 @@ export const CARDS: Record<string, CardDef> = {
   invite: {
     name: 'Invite to hang out',
     kind: 'move',
-    cost: 2,
-    aim: 'one',
-    targets: (ctx) => others(ctx),
-    outcomes: (ctx, t) => inviteOutcomes(ctx, t, LEVEL.friends, false),
-  },
-  inviteout: {
-    name: 'Invite, leaving an out',
-    kind: 'move',
     cost: 1,
     aim: 'one',
     targets: (ctx) => others(ctx),
-    outcomes: (ctx, t) => inviteOutcomes(ctx, t, LEVEL.friendly, true),
+    // Leaves them an out: they say yes if you're Friendly, and a no costs nothing more.
+    outcomes: (ctx, t) => {
+      const yes = bond(ctx.w, ctx.me, t) >= LEVEL.friendly;
+      const fx = noEffects();
+      if (yes && P(ctx).personality.C === -1) fx.energy.push({ id: ctx.me, d: 1 });
+      return [{ p: 1, fx, success: yes }];
+    },
   },
   askout: {
     name: 'Ask out',
@@ -623,47 +481,7 @@ export const CARDS: Record<string, CardDef> = {
     },
   },
 
-  // Shirt cards (other people's shirts hand you these) --------------------------------------------
-  askshirt: {
-    name: 'Ask about their shirt',
-    kind: 'starter',
-    cost: 0,
-    aim: 'one',
-    warm: true,
-    targets: (ctx) => others(ctx).filter((t) => drawnBy(ctx.w, ctx.me, t)),
-    outcomes: (ctx, t) => {
-      const fx = noEffects();
-      fx.bond.push({ a: ctx.me, b: t, d: 2 });
-      return sure(fx);
-    },
-  },
-  teaseshirt: {
-    name: 'Tease their shirt',
-    kind: 'attack',
-    cost: 1,
-    aim: 'one',
-    targets: (ctx) => others(ctx).filter((t) => tempted(ctx.w, ctx.me, t)),
-    outcomes: (ctx, t) => {
-      const fx = noEffects();
-      fx.bond.push({ a: ctx.me, b: t, d: -2 });
-      fx.energy.push({ id: t, d: -1 });
-      return [{ p: 1, fx, success: false }];
-    },
-  },
 };
-
-function inviteOutcomes(ctx: Ctx, t: number, needed: number, easyOut: boolean): Outcome[] {
-  const yes = bond(ctx.w, ctx.me, t) >= needed;
-  const fx = noEffects();
-  if (yes) {
-    if (!easyOut) fx.energy.push({ id: ctx.me, d: 1 });
-    if (P(ctx).personality.C === -1) fx.energy.push({ id: ctx.me, d: 1 });
-  } else if (!easyOut && others(ctx).length > 1) {
-    fx.energy.push({ id: ctx.me, d: -1 });
-    for (const l of others(ctx)) if (l !== t) fx.respect.push({ from: l, to: ctx.me, d: -1 });
-  }
-  return [{ p: 1, fx, success: yes }];
-}
 
 /** Whether `viewer` is drawn by `wearer`'s shirt: a funny tee if they value funny people, a fan tee if they love the thing. */
 export function drawnBy(w: World, viewer: number, wearer: number): boolean {
@@ -716,7 +534,8 @@ export function standUpOdds(ctx: Ctx, t: number): number {
 
 /**
  * A card's cost for this person, here, now (§7.2 trait cards; §8 rule 14). Outgoing: cards to the
- * table −1. Reserved: cards to a table of 4+ +1. Edgy: Tease, Push back and Brag −1. A teacher in the
+ * table −1. Reserved: cards to a table of 4+ +1. Edgy: Tease and Brag −1. Asking about a shirt that
+ * draws you: free. A teacher in the
  * room: attacks +2. A hoodie: teasing or putting down its wearer +1. Reported by a teacher: mean cards
  * +1 for a week.
  */
@@ -729,9 +548,10 @@ export function costOf(ctx: Ctx, key: string, target: number): number {
     if (me.personality.E === 1) cost -= 1;
     if (me.personality.E === -1 && ctx.c.members.length >= 4) cost += 1;
   }
-  if (me.personality.A === -1 && ['tease', 'push', 'brag', 'teaseshirt'].includes(base)) cost -= 1;
+  if (base === 'ask' && target >= 0 && drawnBy(ctx.w, ctx.me, target)) cost = 0;
+  if (me.personality.A === -1 && ['tease', 'brag'].includes(base)) cost -= 1;
   if (def.kind === 'attack' && ctx.c.teacher) cost += 2;
-  if ((base === 'tease' || base === 'putdown' || base === 'teaseshirt') && target >= 0 && ctx.w.people[target].shirt.style === 'hoodie') cost += 1;
+  if ((base === 'tease' || base === 'putdown') && target >= 0 && ctx.w.people[target].shirt.style === 'hoodie') cost += 1;
   if ((def.mean || base === 'tease') && ctx.w.day < me.meanCostUntil) cost += 1;
   return Math.max(0, cost);
 }
@@ -746,8 +566,7 @@ export function collection(w: World, id: number): Map<string, number> {
   const T = p.personality;
   const out = new Map<string, number>();
   const add = (key: string, n: number) => n > 0 && out.set(key, (out.get(key) ?? 0) + n);
-  add('ask', 1 + (T.E === 1 ? 1 : 0) + (T.O === 1 ? 1 : 0));
-  add('share', 2);
+  add('ask', 3 + (T.E === 1 ? 1 : 0) + (T.O === 1 ? 1 : 0));
   add('openup', 1);
   add('compliment', 1 + (T.A === 1 ? 1 : 0));
   const best = ABILITIES.reduce((b, a) => (p.abilities[a] > p.abilities[b] ? a : b), ABILITIES[0]);
@@ -759,10 +578,9 @@ export function collection(w: World, id: number): Map<string, number> {
   for (const t of strong) add(`opinion:${t}:${Math.sign(p.opinions[t])}`, 1);
   for (const [i, level] of p.interests) add(`talk:${i}`, level);
   add('joke', 1 + Math.floor(p.abilities.humor / 2));
-  add('tease', 1 + (T.A === -1 ? 1 : 0));
+  add('tease', 2 + (T.A === -1 ? 2 : 0));
   add('putdown', 1);
   add('invite', 1);
-  add('inviteout', 1);
   add('askout', 1);
   if (p.partner >= 0) add('breakup', 1);
   // A rumor you could make up about someone you can't stand (an Enemy, Bond −3 or lower), once a week.
@@ -775,22 +593,9 @@ export function collection(w: World, id: number): Map<string, number> {
     const s = freshStory(w, sid);
     if (s) add(`story:${sid}`, 1);
   }
-  // Responses: personality sets the mix.
-  add('listen', 1 + (T.E === -1 ? 1 : 0) + (T.A === 1 ? 1 : 0));
-  add('laugh', 1 + (T.A === 1 ? 1 : 0));
-  add('answer', 1 + (T.O === 1 ? 1 : 0));
-  add('same', 1 + (T.N === 1 ? 1 : 0));
-  add('more', 1);
-  add('agree', 1);
-  add('push', 1 + (T.A === -1 ? 1 : 0));
-  add('fake', 1 + (T.statusDrive === 2 ? 1 : 0));
-  add('impressed', 1);
-  add('teaseback', 1 + (T.A === -1 ? 1 : 0));
-  add('thank', 1);
+  // Responding: the warmer, quieter, more open or more eager to fit in you are, the more of it.
+  add('respond', 8 + (T.A === 1 ? 2 : 0) + (T.E === -1 ? 1 : 0) + (T.O === 1 ? 1 : 0) + (T.N === 1 ? 1 : 0) + (T.statusDrive === 2 ? 1 : 0));
   add('standup', 1 + (T.A === 1 ? 1 : 0));
-  // Other people's shirts hand you these (free, unlimited: they're about what's in front of you).
-  add('askshirt', 1);
-  add('teaseshirt', 1);
   // Practice earns extra copies.
   for (const [k, n] of p.earned) add(k, n);
   return out;
